@@ -750,7 +750,7 @@ function showToast(text, kind = 'ok', duration = 2400) {
 //  PRESETS STORAGE
 // ═══════════════════════════════════════════════════════════════
 const PRESETS_KEY = 'excel-time-helper-presets';
-const PRESETS_INIT_FLAG = 'excel-time-helper-presets-init';
+const PRESETS_MIGRATION_FLAG = 'excel-time-helper-presets-migrated-v1';
 
 function loadPresets() {
   try {
@@ -765,38 +765,21 @@ function makeId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-const ROTA_NICKS = [
-  'Aleksander_Neonov', 'Twizak_Taziev', 'Artem_Vendetto', 'Arkady_Shafutinsky',
-  'Adrian_Bern', 'Aleks_Rublev', 'Semen_Lukashenko', 'Mark_Maslovskiy',
-  'John_Galante', 'Alexander_Kikot', 'Aleksand_Zakonov', 'Waldemar_Sertine',
-  'Ilya_Manylist', 'Pasha_Milles'
-];
-const ROTA_DATES = ['28.09.26', '29.09.26', '30.09.26', '01.10.26'];
-
-function buildRotaPresetData() {
-  const header = ROTA_NICKS.join('\n');
-  const blocks = ROTA_NICKS.map(() =>
-    ROTA_DATES.map(d => `0:00:00\n${d}`).join('\n')
-  );
-  return header + '\n\n' + blocks.join('\n\n');
-}
-
-function initPresetsOnFirstRun() {
+// Удаляем автосозданный пресет «Список роты (14)» из прошлых версий.
+// Ничего не создаём по умолчанию — стартовый список пресетов пустой.
+function migratePresetsOnce() {
   let flag = null;
-  try { flag = localStorage.getItem(PRESETS_INIT_FLAG); } catch (e) {}
+  try { flag = localStorage.getItem(PRESETS_MIGRATION_FLAG); } catch (e) {}
   if (flag) return;
+
   const presets = loadPresets();
-  if (!presets.length) {
-    presets.push({
-      id: 'default-rota',
-      name: 'Список роты (14)',
-      data: buildRotaPresetData(),
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
-    savePresetsArray(presets);
+  const filtered = presets.filter(p =>
+    !(p && (p.id === 'default-rota' || p.name === 'Список роты (14)'))
+  );
+  if (filtered.length !== presets.length) {
+    savePresetsArray(filtered);
   }
-  try { localStorage.setItem(PRESETS_INIT_FLAG, '1'); } catch (e) {}
+  try { localStorage.setItem(PRESETS_MIGRATION_FLAG, '1'); } catch (e) {}
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -841,20 +824,15 @@ function parse(text) {
   const hasInterspersedNicks = restLines.some(l => !RE_DATE.test(l) && !RE_TIME.test(l));
 
   if (hasInterspersedNicks) {
-    // Есть ники, перемешанные с данными — определяем, где они (сверху или снизу)
     const firstIsData = RE_DATE.test(lines[0]) || RE_TIME.test(lines[0]);
     if (firstIsData) {
-      // Формат C: ник СНИЗУ блока (данные идут первыми, ник — после них)
       return { format: 'C', records: parseNickBottom(lines) };
     }
-    // Формат A: ник СВЕРХУ блока
     return { format: 'A', records: parseNickTop(lines) };
   }
-  // Формат B: все ники сверху, потом блоки данных без ников
   return { format: 'B', records: parseListFirst(leadingLines, restLines) };
 }
 
-// Утилита: превратить цепочку токенов (time/date) в массив строк {date, time}
 function tokensToRows(tokens) {
   const rows = [];
   for (let i = 0; i < tokens.length - 1; i++) {
@@ -870,10 +848,6 @@ function makeToken(line) {
   return { type: 'time', value: line };
 }
 
-// Формат A: ник идёт ПЕРЕД своим блоком данных
-//   Dmitry_Volkov
-//   7:32:15
-//   28.09.26
 function parseNickTop(lines) {
   const blocks = [];
   let current = null;
@@ -885,7 +859,6 @@ function parseNickTop(lines) {
     }
     current = { nick: line, tokens: [] };
     blocks.push(current);
-    // Ник может быть склеен со временем: "Dmitry_Volkov7:32:15"
     const m = line.match(/^(.+?)(\d{1,2}:\d{2}(?::\d{2})?)$/);
     if (m && /[^\d:]/.test(m[1])) {
       current.nick = m[1].trim();
@@ -897,10 +870,6 @@ function parseNickTop(lines) {
     .filter(b => b.rows.length > 0);
 }
 
-// Формат C: ник идёт ПОСЛЕ своего блока данных
-//   7:32:15
-//   28.09.26
-//   Dmitry_Volkov
 function parseNickBottom(lines) {
   const blocks = [];
   let pending = [];
@@ -908,19 +877,16 @@ function parseNickBottom(lines) {
     if (RE_DATE.test(line) || RE_TIME.test(line)) {
       pending.push(makeToken(line));
     } else {
-      // Встретили ник — накопленные данные принадлежат ему
       blocks.push({ nick: line, rows: tokensToRows(pending) });
       pending = [];
     }
   }
-  // Данные в конце без ника-подписи — отдаём как «Без_ника»
   if (pending.length) {
     blocks.push({ nick: 'Без_ника', rows: tokensToRows(pending) });
   }
   return blocks.filter(b => b.rows.length > 0);
 }
 
-// Формат B: сначала список ников, потом подряд идут блоки данных
 function parseListFirst(nicks, dataLines) {
   const tokens = [];
   for (const line of dataLines) {
@@ -1211,7 +1177,6 @@ Roman_Kuznetsov
 4:09:37
 01.10.26`;
 
-// Формат C — ник идёт СНИЗУ каждого блока
 const SAMPLE_C = `Время
 Дата
 7:32:15
@@ -1762,7 +1727,7 @@ window.addEventListener('beforeunload', () => {
 //  INIT
 // ═══════════════════════════════════════════════════════════════
 (function init() {
-  initPresetsOnFirstRun();
+  migratePresetsOnce();
   renderPresetSelect();
 
   let savedOrientation = 'h';
