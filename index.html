@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Время → Excel</title>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
   :root {
     --indigo-500: #6366f1; --indigo-600: #4f46e5; --indigo-700: #4338ca;
@@ -42,47 +43,36 @@
     background-attachment: fixed;
     min-height: 100vh;
     padding: 28px 24px 60px;
-    transition: background .3s ease, color .3s ease;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
   .container { max-width: 1240px; margin: 0 auto; }
-
-  header {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 20px; margin-bottom: 20px; flex-wrap: wrap;
-  }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 14px; }
   .brand-icon {
     width: 46px; height: 46px; border-radius: 13px;
     background: linear-gradient(135deg, var(--indigo-500), var(--mint-500));
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--glow); color: #fff; flex-shrink: 0;
-    transition: transform .3s;
   }
-  .brand-icon:hover { transform: rotate(-8deg) scale(1.05); }
   .brand-icon svg { width: 24px; height: 24px; }
   .brand h1 { font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
   .brand .sub { font-size: 12.5px; color: var(--text-3); font-weight: 500; }
-
   .header-actions { display: flex; gap: 8px; align-items: center; }
   .icon-btn {
     width: 42px; height: 42px; border-radius: 11px;
     background: var(--surface); border: 1px solid var(--border);
     color: var(--text-2); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
-    box-shadow: var(--shadow-sm); transition: all .2s cubic-bezier(.4,0,.2,1);
-    flex-shrink: 0; position: relative;
+    box-shadow: var(--shadow-sm); flex-shrink: 0; position: relative;
+    transition: border-color .2s, color .2s;
   }
-  .icon-btn:hover {
-    transform: translateY(-2px); border-color: var(--indigo-500);
-    color: var(--indigo-500); box-shadow: var(--shadow-md);
-  }
-  .icon-btn svg { width: 18px; height: 18px; transition: transform .4s; position: absolute; }
+  .icon-btn:hover { border-color: var(--indigo-500); color: var(--indigo-500); }
+  .icon-btn svg { width: 18px; height: 18px; position: absolute; }
   .icon-btn .sun { opacity: 1; }
-  .icon-btn .moon { opacity: 0; transform: rotate(90deg) scale(.5); }
-  html[data-theme="dark"] .icon-btn .sun { opacity: 0; transform: rotate(-90deg) scale(.5); }
-  html[data-theme="dark"] .icon-btn .moon { opacity: 1; transform: rotate(0) scale(1); }
-
+  .icon-btn .moon { opacity: 0; }
+  html[data-theme="dark"] .icon-btn .sun { opacity: 0; }
+  html[data-theme="dark"] .icon-btn .moon { opacity: 1; }
   .quick-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
   .quick-chip {
     display: inline-flex; align-items: center; gap: 8px;
@@ -90,7 +80,6 @@
     background: var(--surface); border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
     font-size: 12.5px; color: var(--text-2); font-weight: 500;
-    transition: all .2s;
   }
   .quick-chip svg { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; }
   .quick-chip b { color: var(--text); font-weight: 700; font-size: 14px; margin-left: 2px; font-variant-numeric: tabular-nums; }
@@ -99,18 +88,12 @@
   .quick-chip.accent-mint b { color: var(--mint-600); }
   .quick-chip.accent-amber b { color: var(--amber-500); }
   .quick-chip.hidden { display: none; }
-
   .card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 18px; padding: 20px;
     box-shadow: var(--shadow-md); margin-bottom: 16px;
-    transition: box-shadow .3s, border-color .3s, background .3s;
   }
-  .card:hover { box-shadow: var(--shadow-lg); }
-  .card-head {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
+  .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
   .step-badge {
     width: 26px; height: 26px; border-radius: 8px;
     background: linear-gradient(135deg, var(--indigo-500), var(--indigo-700));
@@ -118,14 +101,12 @@
     font-size: 12px; font-weight: 700; flex-shrink: 0;
     box-shadow: 0 4px 10px rgba(99,102,241,.3);
   }
-  .step-badge.star {
-    background: linear-gradient(135deg, var(--mint-500), #047857);
-    box-shadow: 0 4px 10px rgba(16,185,129,.3);
-  }
+  .step-badge.star { background: linear-gradient(135deg, var(--mint-500), #047857); box-shadow: 0 4px 10px rgba(16,185,129,.3); }
   .step-badge.star svg { width: 13px; height: 13px; }
+  .step-badge.xlsx { background: linear-gradient(135deg, #107c41, #0a5a2f); box-shadow: 0 4px 10px rgba(16,124,65,.4); }
+  .step-badge.xlsx svg { width: 13px; height: 13px; }
   .card-head h2 { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
   .card-head .spacer { flex: 1; }
-
   .format-badge {
     display: none; align-items: center; gap: 5px;
     font-size: 11px; font-weight: 600; padding: 4px 10px;
@@ -134,111 +115,72 @@
   .format-badge.a { background: var(--accent-soft); color: var(--indigo-600); display: inline-flex; }
   .format-badge.b { background: rgba(16,185,129,.14); color: var(--mint-600); display: inline-flex; }
   .format-badge.c { background: rgba(14,165,233,.14); color: var(--sky-500); display: inline-flex; }
+  .format-badge.ok { background: rgba(16,185,129,.14); color: var(--mint-600); display: inline-flex; }
+  .format-badge.err { background: rgba(244,63,94,.14); color: var(--rose-500); display: inline-flex; }
   .format-badge svg { width: 11px; height: 11px; }
-
   textarea {
     width: 100%; padding: 14px 16px;
     font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
     font-size: 13px; line-height: 1.65; color: var(--text);
     background: var(--surface-2); border: 1.5px solid var(--border);
-    border-radius: 12px; resize: vertical;
-    transition: all .2s cubic-bezier(.4,0,.2,1); outline: none;
+    border-radius: 12px; resize: vertical; outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
   }
   textarea::placeholder { color: var(--text-4); }
   textarea:hover { border-color: var(--border-2); }
-  textarea:focus {
-    border-color: var(--indigo-500); background: var(--surface);
-    box-shadow: 0 0 0 4px var(--accent-soft);
-  }
-  #input  { height: 200px; transition: height .3s ease, padding .3s, margin .3s; }
+  textarea:focus { border-color: var(--indigo-500); background: var(--surface); box-shadow: 0 0 0 4px var(--accent-soft); }
+  #input { height: 200px; }
   #input.collapsed { height: 0; padding: 0; border: 0; margin: 0; opacity: 0; pointer-events: none; }
   #output { height: 160px; background: var(--surface-3); color: var(--text-2); }
-  #input.dragover {
-    border-color: var(--mint-500); border-style: dashed;
-    background: rgba(16,185,129,.04);
-  }
-
-  .toolbar {
-    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-    margin-top: 12px;
-  }
+  #input.dragover { border-color: var(--mint-500); border-style: dashed; background: rgba(16,185,129,.06); }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
   .toolbar .spacer { flex: 1; }
   .toolbar-label { font-size: 12px; color: var(--text-3); font-weight: 500; }
-
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     padding: 9px 14px; font-size: 12.5px; font-weight: 600;
     font-family: inherit; border: 0; border-radius: 9px; cursor: pointer;
-    transition: all .18s cubic-bezier(.4,0,.2,1); white-space: nowrap;
-    letter-spacing: -.005em; line-height: 1; color: inherit;
+    transition: background .18s, color .18s, box-shadow .18s, border-color .18s;
+    white-space: nowrap; letter-spacing: -.005em; line-height: 1; color: inherit;
   }
-  .btn:active { transform: translateY(1px); }
   .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
   .btn-ghost { background: var(--surface-3); color: var(--text-2); }
   .btn-ghost:hover:not(:disabled) { background: var(--border); color: var(--text); }
   .btn-danger { background: rgba(244,63,94,.1); color: var(--rose-500); }
   .btn-danger:hover:not(:disabled) { background: rgba(244,63,94,.18); }
-  .btn-icon {
-    width: 34px; height: 34px; padding: 0; border-radius: 9px;
-    background: var(--surface-3); color: var(--text-2);
-  }
+  .btn-icon { width: 34px; height: 34px; padding: 0; border-radius: 9px; background: var(--surface-3); color: var(--text-2); }
   .btn-icon:hover { background: var(--border); color: var(--text); }
-  .btn-icon svg { width: 15px; height: 15px; transition: transform .25s; }
+  .btn-icon svg { width: 15px; height: 15px; }
   .btn-icon.active { background: var(--indigo-500); color: #fff; }
   .btn-icon.active svg { transform: rotate(180deg); }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--indigo-500), var(--indigo-700));
-    color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,.3);
-  }
-  .btn-primary:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(99,102,241,.45);
-    transform: translateY(-1px);
-  }
-  .btn-success {
-    background: linear-gradient(135deg, var(--mint-500), var(--mint-600));
-    color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,.3);
-  }
-  .btn-success:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(16,185,129,.45);
-    transform: translateY(-1px);
-  }
+  .btn-primary { background: linear-gradient(135deg, var(--indigo-500), var(--indigo-700)); color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,.3); }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(99,102,241,.5); }
+  .btn-success { background: linear-gradient(135deg, var(--mint-500), var(--mint-600)); color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,.3); }
+  .btn-success:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(16,185,129,.5); }
   .btn-success.copied { background: linear-gradient(135deg, #059669, #047857); }
-  .btn-large {
-    width: 100%; padding: 15px 24px; font-size: 14.5px;
-    border-radius: 12px; justify-content: center;
-  }
+  .btn-excel { background: linear-gradient(135deg, #107c41, #0a5a2f); color: #fff; box-shadow: 0 4px 12px rgba(16,124,65,.35); }
+  .btn-excel:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(16,124,65,.55); }
+  .btn-large { width: 100%; padding: 15px 24px; font-size: 14.5px; border-radius: 12px; justify-content: center; }
   .btn-large svg { width: 17px; height: 17px; }
-
-  .preset-row {
-    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-  }
+  .preset-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .preset-row + .preset-row { margin-top: 8px; }
-
   .preset-select, .preset-input {
     flex: 1; min-width: 160px;
     padding: 11px 14px; font-size: 13px; font-family: inherit;
     background: var(--surface-2); border: 1.5px solid var(--border);
     border-radius: 10px; color: var(--text); outline: none;
-    transition: all .2s cubic-bezier(.4,0,.2,1);
     appearance: none; -webkit-appearance: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
   }
   .preset-select {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 36px;
-    cursor: pointer;
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 36px; cursor: pointer;
   }
   .preset-select:hover, .preset-input:hover { border-color: var(--border-2); }
-  .preset-select:focus, .preset-input:focus {
-    border-color: var(--indigo-500);
-    box-shadow: 0 0 0 4px var(--accent-soft);
-    background: var(--surface);
-  }
+  .preset-select:focus, .preset-input:focus { border-color: var(--indigo-500); box-shadow: 0 0 0 4px var(--accent-soft); background: var(--surface); }
   .preset-input::placeholder { color: var(--text-4); }
-
   .backup-hint {
     margin-top: 10px; font-size: 11.5px; color: var(--text-4);
     display: flex; align-items: center; gap: 6px;
@@ -248,43 +190,28 @@
   .backup-hint svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--amber-500); }
   .backup-hint.warn { border-color: rgba(244,63,94,.4); color: var(--rose-500); }
   .backup-hint.warn svg { color: var(--rose-500); }
-
-  .segmented {
-    display: inline-flex; background: var(--surface-3);
-    border-radius: 10px; padding: 3px; gap: 2px; border: 1px solid var(--border);
-  }
+  .backup-hint.ok { border-color: rgba(16,185,129,.4); color: var(--mint-600); }
+  .backup-hint.ok svg { color: var(--mint-500); }
+  .segmented { display: inline-flex; background: var(--surface-3); border-radius: 10px; padding: 3px; gap: 2px; border: 1px solid var(--border); }
   .segmented label { position: relative; cursor: pointer; user-select: none; }
   .segmented input { position: absolute; opacity: 0; pointer-events: none; }
   .segmented span {
     display: block; padding: 6px 12px; font-size: 12px; font-weight: 500;
     color: var(--text-3); border-radius: 7px;
-    transition: all .18s cubic-bezier(.4,0,.2,1); white-space: nowrap;
+    transition: background .18s, color .18s; white-space: nowrap;
   }
   .segmented label:hover span { color: var(--text-2); }
-  .segmented input:checked + span {
-    background: var(--surface); color: var(--indigo-600);
-    font-weight: 600; box-shadow: var(--shadow-sm);
-  }
-
-  .preview-wrap {
-    margin-top: 12px; max-height: 460px; overflow: auto;
-    border: 1px solid var(--border); border-radius: 12px;
-    background: var(--surface);
-  }
+  .segmented input:checked + span { background: var(--surface); color: var(--indigo-600); font-weight: 600; box-shadow: var(--shadow-sm); }
+  .preview-wrap { margin-top: 12px; max-height: 460px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
   .preview-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
   .preview-wrap::-webkit-scrollbar-track { background: transparent; }
-  .preview-wrap::-webkit-scrollbar-thumb {
-    background: var(--border-2); border-radius: 10px; border: 3px solid var(--surface);
-  }
+  .preview-wrap::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 10px; border: 3px solid var(--surface); }
   .preview-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
-
-  table.preview {
-    border-collapse: separate; border-spacing: 0;
-    width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums;
-  }
+  table.preview { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums; }
   table.preview th, table.preview td {
     padding: 9px 12px; text-align: right; white-space: nowrap;
     border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+    transition: background-color .2s;
   }
   table.preview th:last-child, table.preview td:last-child { border-right: 0; }
   table.preview tbody tr:last-child td { border-bottom: 0; }
@@ -319,19 +246,13 @@
   table.preview tbody tr:nth-child(even) .num-col,
   table.preview tbody tr:nth-child(even) .label-col,
   table.preview tbody tr:nth-child(even) .label-col-wide { background: var(--surface-3); }
-  table.preview tbody tr:hover td { background: rgba(99,102,241,.06); }
+  table.preview tbody tr:hover td { background: rgba(99,102,241,.07); }
   table.preview tbody tr:hover .num-col,
   table.preview tbody tr:hover .label-col,
-  table.preview tbody tr:hover .label-col-wide { background: rgba(99,102,241,.12); }
+  table.preview tbody tr:hover .label-col-wide { background: rgba(99,102,241,.13); }
   table.preview td.empty { color: var(--text-4); font-weight: 400; }
-
-  .header-copy {
-    display: inline-flex; flex-direction: column; align-items: center; gap: 4px;
-    font-weight: 600;
-  }
-  .header-copy .nick-name {
-    max-width: 130px; overflow: hidden; text-overflow: ellipsis;
-  }
+  .header-copy { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 600; }
+  .header-copy .nick-name { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
   .header-copy .copy-mini {
     display: inline-flex; align-items: center; justify-content: center; gap: 4px;
     padding: 3px 7px; font-size: 10px; font-weight: 600;
@@ -340,23 +261,68 @@
     cursor: pointer; transition: all .18s; font-family: inherit;
   }
   .header-copy .copy-mini svg { width: 10px; height: 10px; }
-  .header-copy .copy-mini:hover {
-    background: var(--indigo-500); color: #fff; border-color: var(--indigo-500);
-  }
-  .header-copy .copy-mini.copied {
-    background: var(--mint-500); color: #fff; border-color: var(--mint-500);
-  }
-
+  .header-copy .copy-mini:hover { background: var(--indigo-500); color: #fff; border-color: var(--indigo-500); }
+  .header-copy .copy-mini.copied { background: var(--mint-500); color: #fff; border-color: var(--mint-500); }
   .row-btn {
     display: inline-flex; align-items: center; justify-content: center;
     width: 26px; height: 26px; border: 0; border-radius: 7px;
     background: var(--surface-3); color: var(--text-3);
-    cursor: pointer; transition: all .18s cubic-bezier(.4,0,.2,1);
+    cursor: pointer; transition: all .18s;
   }
   .row-btn svg { width: 12px; height: 12px; }
-  .row-btn:hover { background: var(--indigo-500); color: #fff; transform: scale(1.1); }
+  .row-btn:hover { background: var(--indigo-500); color: #fff; }
   .row-btn.copied { background: var(--mint-500); color: #fff; }
-
+  .excel-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .excel-row + .excel-row { margin-top: 8px; }
+  .excel-info {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-top: 12px; padding: 10px 14px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; font-size: 12px;
+  }
+  .excel-info .item { display: inline-flex; align-items: center; gap: 6px; color: var(--text-3); }
+  .excel-info .item b {
+    color: var(--text); font-weight: 700;
+    background: var(--surface-3); padding: 2px 8px; border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .excel-info .item.will b { color: var(--indigo-600); background: rgba(99,102,241,.14); }
+  .excel-grid-wrap {
+    margin-top: 12px; max-height: 380px; overflow: auto;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface);
+  }
+  .excel-grid-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+  .excel-grid-wrap::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 10px; border: 3px solid var(--surface); }
+  table.excel-grid {
+    border-collapse: separate; border-spacing: 0;
+    font-size: 11.5px; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  table.excel-grid th, table.excel-grid td {
+    padding: 5px 9px; min-width: 55px; max-width: 180px;
+    border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--text-2); background: var(--surface);
+  }
+  table.excel-grid th {
+    position: sticky; top: 0; z-index: 2;
+    background: linear-gradient(180deg, var(--surface-2), var(--surface-3));
+    color: var(--text-3); font-weight: 600; font-size: 10.5px;
+    text-align: center; letter-spacing: .04em;
+  }
+  table.excel-grid .row-num {
+    position: sticky; left: 0; z-index: 1;
+    width: 38px; min-width: 38px;
+    text-align: center; color: var(--text-4); font-size: 10.5px;
+    background: var(--surface-2);
+  }
+  table.excel-grid thead .row-num { z-index: 3; }
+  table.excel-grid td.cell-nick { background: rgba(16,185,129,.15) !important; color: var(--mint-600); font-weight: 700; }
+  table.excel-grid td.cell-date { background: rgba(14,165,233,.15) !important; color: var(--sky-500); font-weight: 700; }
+  table.excel-grid td.cell-will { background: rgba(99,102,241,.15) !important; color: var(--indigo-600); font-weight: 700; }
+  html[data-theme="dark"] table.excel-grid td.cell-nick { color: #6ee7b7; }
+  html[data-theme="dark"] table.excel-grid td.cell-date { color: #7dd3fc; }
+  html[data-theme="dark"] table.excel-grid td.cell-will { color: #a5b4fc; background: rgba(99,102,241,.25) !important; }
   .empty-state {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; text-align: center;
@@ -378,12 +344,7 @@
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 12px; color: var(--indigo-600); font-weight: 500;
   }
-
-  .toast-container {
-    position: fixed; top: 20px; right: 20px; z-index: 200;
-    display: flex; flex-direction: column; gap: 8px;
-    pointer-events: none;
-  }
+  .toast-container { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
   .toast {
     display: flex; align-items: center; gap: 10px;
     padding: 12px 16px; border-radius: 12px;
@@ -391,30 +352,17 @@
     box-shadow: var(--shadow-lg);
     font-size: 13px; font-weight: 500; color: var(--text);
     pointer-events: auto;
-    min-width: 240px; max-width: 360px;
-    animation: slideIn .3s cubic-bezier(.34,1.56,.64,1);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    min-width: 240px; max-width: 520px;
   }
-  .toast.closing { animation: slideOut .25s forwards; }
   .toast svg { width: 18px; height: 18px; flex-shrink: 0; }
-  .toast.ok { border-color: rgba(16,185,129,.35); }
+  .toast span { word-break: break-word; line-height: 1.5; }
+  .toast.ok { border-color: rgba(16,185,129,.4); }
   .toast.ok svg { color: var(--mint-500); }
-  .toast.warn { border-color: rgba(245,158,11,.35); }
+  .toast.warn { border-color: rgba(245,158,11,.4); }
   .toast.warn svg { color: var(--amber-500); }
-  .toast.err { border-color: rgba(244,63,94,.35); }
+  .toast.err { border-color: rgba(244,63,94,.4); }
   .toast.err svg { color: var(--rose-500); }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(40px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes slideOut { to { opacity: 0; transform: translateX(40px); } }
-
-  .kbd-hints {
-    display: flex; gap: 14px; flex-wrap: wrap;
-    font-size: 11.5px; color: var(--text-4);
-    margin-top: 12px; justify-content: center;
-  }
+  .kbd-hints { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-4); margin-top: 12px; justify-content: center; }
   .kbd-hints .kh { display: inline-flex; align-items: center; gap: 5px; }
   kbd {
     display: inline-block; padding: 1px 6px;
@@ -424,7 +372,6 @@
     font-size: 10.5px; color: var(--text-2); font-weight: 600;
     line-height: 1.5;
   }
-
   @media (max-width: 720px) {
     body { padding: 20px 12px 40px; font-size: 13.5px; }
     .brand-icon { width: 40px; height: 40px; }
@@ -458,7 +405,7 @@
       </div>
       <div>
         <h1>Время → Excel</h1>
-        <div class="sub">Вставь данные — получи готовый TSV или CSV</div>
+        <div class="sub">Вставь данные — получи готовый TSV, CSV или обновлённый .xlsx</div>
       </div>
     </div>
     <div class="header-actions">
@@ -480,33 +427,19 @@
       <span id="chipFormatText">Формат A</span>
     </div>
     <div class="quick-chip accent-indigo hidden" id="chipNicks">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       <span>Ников: <b id="qsNicks">—</b></span>
     </div>
     <div class="quick-chip accent-sky hidden" id="chipDates">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Дат: <b id="qsDates">—</b></span>
     </div>
     <div class="quick-chip accent-mint hidden" id="chipCells">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 11l3 3L22 4"/>
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       <span>Записей: <b id="qsCells">—</b></span>
     </div>
     <div class="quick-chip accent-amber hidden" id="chipEmpty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <line x1="9" y1="9" x2="15" y2="15"/>
-        <line x1="15" y1="9" x2="9" y2="15"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
       <span>Пустых: <b id="qsEmpty">—</b></span>
     </div>
   </div>
@@ -517,37 +450,21 @@
       <h2>Данные отчёта</h2>
       <div class="spacer"></div>
       <button class="btn-icon" id="collapseToggle" title="Свернуть/развернуть" aria-label="Свернуть">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="18 15 12 9 6 15"/>
-        </svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
       </button>
     </div>
-
     <textarea id="input" spellcheck="false" placeholder="Вставь данные сюда. Можно перетащить .txt файл.
 
 Формат A — ник СВЕРХУ блока:
 Dmitry_Volkov
 7:32:15
 28.09.26
-8:14:47
-29.09.26
-
-Egor_Belov
-5:44:12
-28.09.26
 ...
 
 Формат C — ник СНИЗУ блока (время сверху):
 7:32:15
 28.09.26
-8:14:47
-29.09.26
 Dmitry_Volkov
-
-5:44:12
-28.09.26
-...
-Egor_Belov
 
 Формат B — все ники сверху, потом блоки данных:
 Dmitry_Volkov
@@ -556,38 +473,96 @@ Egor_Belov
 7:32:15
 28.09.26
 ..."></textarea>
-
     <div class="toolbar">
-      <button class="btn btn-ghost" id="sampleA">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Пример A
-      </button>
-      <button class="btn btn-ghost" id="sampleB">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Пример B
-      </button>
-      <button class="btn btn-ghost" id="sampleC">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Пример C (ник снизу)
-      </button>
-      <button class="btn btn-ghost" id="clear">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-        Очистить
-      </button>
-
+      <button class="btn btn-ghost" id="sampleA">Пример A</button>
+      <button class="btn btn-ghost" id="sampleB">Пример B</button>
+      <button class="btn btn-ghost" id="sampleC">Пример C (ник снизу)</button>
+      <button class="btn btn-ghost" id="clear">Очистить</button>
       <div class="spacer"></div>
-
       <span class="toolbar-label">Ориентация:</span>
       <div class="segmented">
         <label><input type="radio" name="orientation" value="h" checked><span>Горизонтально</span></label>
         <label><input type="radio" name="orientation" value="v"><span>Вертикально</span></label>
       </div>
-
       <span class="toolbar-label">Порядок:</span>
       <div class="segmented">
         <label><input type="radio" name="order" value="asc" checked><span id="orderAscLabel">Старые сначала</span></label>
         <label><input type="radio" name="order" value="desc"><span id="orderDescLabel">Новые сначала</span></label>
       </div>
+    </div>
+  </div>
+
+  <div class="card" id="excelCard">
+    <div class="card-head">
+      <span class="step-badge xlsx">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </span>
+      <h2>Excel-шаблон с онлайном</h2>
+      <div class="spacer"></div>
+      <span class="format-badge" id="excelBadge"></span>
+    </div>
+    <div class="excel-row">
+      <button class="btn btn-excel" id="excelLoad">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Загрузить .xlsx шаблон
+      </button>
+      <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none">
+      <button class="btn btn-ghost" id="excelClear" disabled>Сбросить</button>
+      <div class="spacer" style="flex:1;"></div>
+      <span id="excelFileName" style="font-size:12px;color:var(--text-3);font-weight:500;"></span>
+    </div>
+    <div class="excel-info" id="excelInfo" style="display:none;">
+      <div class="item">Лист: <b id="excelSheetName">—</b></div>
+      <div class="item">Ников: <b id="excelNickCount">0</b></div>
+      <div class="item">Дат: <b id="excelDateCount">0</b></div>
+      <div class="item">Ориентация: <b id="excelOrientText">—</b></div>
+      <div class="item will" id="excelInfoWill" style="display:none;">Будет заполнено: <b id="excelWillCount">0</b></div>
+    </div>
+    <div id="excelPreviewBox" style="display:none;">
+      <div class="excel-grid-wrap">
+        <table class="excel-grid" id="excelGrid"></table>
+      </div>
+    </div>
+    <div id="excelError" style="display:none;">
+      <div class="backup-hint warn" style="margin-top:12px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span id="excelErrorText">Не удалось распознать структуру.</span>
+      </div>
+    </div>
+    <div class="excel-row" id="excelActions" style="display:none; margin-top:12px;">
+      <button class="btn btn-success btn-large" id="excelFill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span id="excelFillText">Заполнить временами</span>
+      </button>
+      <button class="btn btn-primary btn-large" id="excelDownload" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Скачать обновлённый .xlsx
+      </button>
+    </div>
+    <div class="backup-hint" id="excelHint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>Загрузи Excel-шаблон с никами и датами. После загрузки текстового отчёта в превью покажется, что будет вставлено (фиолетовые ячейки). Нажми «Заполнить временами» → «Скачать».</span>
     </div>
   </div>
 
@@ -600,53 +575,35 @@ Egor_Belov
       <div class="spacer"></div>
       <span id="presetCount" style="font-size:12px;color:var(--text-3);font-weight:500;"></span>
     </div>
-
     <div class="preset-row">
       <select class="preset-select" id="presetSelect"><option value="">— выберите пресет —</option></select>
-      <button class="btn btn-primary" id="presetLoad" disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Загрузить
-      </button>
-      <button class="btn btn-danger" id="presetDelete" disabled title="Удалить пресет">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-        Удалить
-      </button>
+      <button class="btn btn-primary" id="presetLoad" disabled>Загрузить</button>
+      <button class="btn btn-danger" id="presetDelete" disabled>Удалить</button>
     </div>
-
     <div class="preset-row">
       <input type="text" class="preset-input" id="presetName" placeholder="Название нового пресета (можно оставить пустым)">
-      <button class="btn btn-success" id="presetSave">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Сохранить как пресет
-      </button>
+      <button class="btn btn-success" id="presetSave">Сохранить как пресет</button>
     </div>
-
     <div class="preset-row">
-      <button class="btn btn-ghost" id="exportData" style="flex:1;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Сохранить всё в файл (бэкап)
-      </button>
-      <button class="btn btn-ghost" id="importData" style="flex:1;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Загрузить из файла
-      </button>
+      <button class="btn btn-ghost" id="exportData" style="flex:1;">Сохранить всё в файл (бэкап)</button>
+      <button class="btn btn-ghost" id="importData" style="flex:1;">Загрузить из файла</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none">
     </div>
-
     <div class="backup-hint" id="backupHint">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span>Пресеты и ввод хранятся в браузере и переживают перезапуск ПК. Для надёжности сохраняй бэкап в файл.</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>Пресеты и ввод хранятся в браузере и переживают перезапуск ПК.</span>
     </div>
   </div>
 
   <div class="card">
     <div class="card-head">
       <span class="step-badge">2</span>
-      <h2>Предпросмотр</h2>
+      <h2>Предпросмотр текста</h2>
       <div class="spacer"></div>
       <span class="format-badge" id="formatBadge"></span>
     </div>
-
     <div class="preview-wrap" id="previewWrap">
       <div class="empty-state">
         <div class="icon-wrap">
@@ -663,23 +620,19 @@ Egor_Belov
       <span class="step-badge">3</span>
       <h2>Что попадёт в буфер <span id="outputHint" style="font-weight:500;color:var(--text-3);font-size:12.5px;margin-left:4px;"></span></h2>
     </div>
-
     <textarea id="output" readonly spellcheck="false" placeholder="Здесь появятся только значения времени, разделённые табами…"></textarea>
-
-    <div style="margin-top: 14px;">
+    <div style="margin-top:14px;">
       <button class="btn btn-success btn-large" id="copyAll">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
         <span id="copyAllText">Скопировать все времена</span>
       </button>
     </div>
-
-    <div style="margin-top: 10px;">
-      <button class="btn btn-primary btn-large" id="exportCsv">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Скачать CSV
-      </button>
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary btn-large" id="exportCsv">Скачать CSV</button>
     </div>
-
     <div class="kbd-hints">
       <span class="kh"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> — обработать</span>
       <span class="kh"><kbd>Esc</kbd> — очистить</span>
@@ -693,21 +646,11 @@ Egor_Belov
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  STORAGE AVAILABILITY
+//  STORAGE / THEME
 // ═══════════════════════════════════════════════════════════════
-function isStorageAvailable() {
-  try {
-    const k = '__t__';
-    localStorage.setItem(k, '1');
-    localStorage.removeItem(k);
-    return true;
-  } catch (e) { return false; }
-}
+function isStorageAvailable() { try { const k='__t__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; } catch(e) { return false; } }
 const STORAGE_OK = isStorageAvailable();
 
-// ═══════════════════════════════════════════════════════════════
-//  THEME
-// ═══════════════════════════════════════════════════════════════
 const THEME_KEY = 'excel-time-helper-theme';
 const $themeToggle = document.getElementById('themeToggle');
 function applyTheme(theme) {
@@ -715,8 +658,7 @@ function applyTheme(theme) {
   try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
 }
 (function initTheme() {
-  let saved = '';
-  try { saved = localStorage.getItem(THEME_KEY) || ''; } catch (e) {}
+  let saved = ''; try { saved = localStorage.getItem(THEME_KEY) || ''; } catch (e) {}
   if (!saved) saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   applyTheme(saved);
 })();
@@ -734,16 +676,13 @@ const TOAST_ICONS = {
   warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
   err: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
 };
-function showToast(text, kind = 'ok', duration = 2400) {
+function showToast(text, kind = 'ok', duration = 3000) {
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
   el.innerHTML = (TOAST_ICONS[kind] || TOAST_ICONS.ok) + '<span></span>';
   el.querySelector('span').textContent = text;
   $toasts.appendChild(el);
-  setTimeout(() => {
-    el.classList.add('closing');
-    setTimeout(() => el.remove(), 260);
-  }, duration);
+  setTimeout(() => el.remove(), duration);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -751,88 +690,121 @@ function showToast(text, kind = 'ok', duration = 2400) {
 // ═══════════════════════════════════════════════════════════════
 const PRESETS_KEY = 'excel-time-helper-presets';
 const PRESETS_MIGRATION_FLAG = 'excel-time-helper-presets-migrated-v1';
-
-function loadPresets() {
-  try {
-    const raw = localStorage.getItem(PRESETS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) { return []; }
-}
-function savePresetsArray(arr) {
-  try { localStorage.setItem(PRESETS_KEY, JSON.stringify(arr)); } catch (e) {}
-}
-function makeId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
-// Удаляем автосозданный пресет «Список роты (14)» из прошлых версий.
-// Ничего не создаём по умолчанию — стартовый список пресетов пустой.
+function loadPresets() { try { const raw = localStorage.getItem(PRESETS_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; } }
+function savePresetsArray(arr) { try { localStorage.setItem(PRESETS_KEY, JSON.stringify(arr)); } catch (e) {} }
+function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function migratePresetsOnce() {
-  let flag = null;
-  try { flag = localStorage.getItem(PRESETS_MIGRATION_FLAG); } catch (e) {}
+  let flag = null; try { flag = localStorage.getItem(PRESETS_MIGRATION_FLAG); } catch (e) {}
   if (flag) return;
-
   const presets = loadPresets();
-  const filtered = presets.filter(p =>
-    !(p && (p.id === 'default-rota' || p.name === 'Список роты (14)'))
-  );
-  if (filtered.length !== presets.length) {
-    savePresetsArray(filtered);
-  }
+  const filtered = presets.filter(p => !(p && (p.id === 'default-rota' || p.name === 'Список роты (14)')));
+  if (filtered.length !== presets.length) savePresetsArray(filtered);
   try { localStorage.setItem(PRESETS_MIGRATION_FLAG, '1'); } catch (e) {}
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  REGEX / UTILS
 // ═══════════════════════════════════════════════════════════════
-const RE_DATE   = /^\d{1,2}[.\/]\d{1,2}(?:[.\/]\d{2,4})?$/;
 const RE_TIME   = /^\d{1,2}:\d{2}(?::\d{2})?$/;
 const RE_HEADER = /^(время|дата|time|date)$/i;
+// Строгий формат ника: латиница, обязательно Nick_Name (одно или несколько «_Часть»).
+// Кириллица, пробелы, любые другие разделители — не ник.
+const RE_NICK   = /^[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z][A-Za-z0-9]*)+$/;
+
+function isNickFormat(s) {
+  return RE_NICK.test(String(s || '').trim());
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+// Универсальный парсер даты. Возвращает {d, mo, y} или null.
+function tryParseDate(str) {
+  if (str == null) return null;
+  const s = String(str).trim();
+  if (!s) return null;
+  let m;
+  // ISO: YYYY-MM-DD[THH:MM:SS][Z], YYYY/MM/DD
+  m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[\sT]|$)/);
+  if (m) return { d: m[3], mo: m[2], y: m[1] };
+  // EU: DD.MM.YY, DD.MM.YYYY, DD/MM/YY, DD/MM/YYYY
+  m = s.match(/^(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{2,4}))?$/);
+  if (m) return { d: m[1], mo: m[2], y: m[3] || '' };
+  return null;
+}
+
+function isDate(s) { return tryParseDate(s) !== null; }
+function isTime(s) { return RE_TIME.test(String(s).trim()); }
+
+function excelSerialToDate(n) {
+  const ms = Math.round((n - 25569) * 86400 * 1000);
+  return new Date(ms);
+}
+
+// Доля суток → "HH:MM:SS". Используется для ячеек Excel, где время хранится как число 0..1.
+function excelFractionToTime(n) {
+  let totalSecs = Math.round(Number(n) * 86400);
+  totalSecs = ((totalSecs % 86400) + 86400) % 86400;
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+}
 
 function dateToObj(s) {
-  const parts = s.split(/[.\/]/).map(Number);
-  let [d, mo, y] = parts;
-  if (y === undefined) y = new Date().getFullYear();
-  else if (y < 100) y += 2000;
-  return new Date(y, (mo || 1) - 1, d || 1);
+  const p = tryParseDate(s);
+  if (!p) return new Date(0);
+  let y = p.y ? Number(p.y) : new Date().getFullYear();
+  if (y < 100) y += 2000;
+  return new Date(y, Number(p.mo) - 1, Number(p.d));
 }
 function dateKey(s) { return dateToObj(s).getTime(); }
 function normalizeDate(s) {
-  const parts = s.split(/[.\/]/);
-  const d = String(parts[0]).padStart(2, '0');
-  const mo = String(parts[1]).padStart(2, '0');
-  const y = parts[2];
+  const p = tryParseDate(s);
+  if (!p) return String(s || '').trim();
+  const d = String(p.d).padStart(2, '0');
+  const mo = String(p.mo).padStart(2, '0');
+  const y = p.y ? String(p.y).slice(-2).padStart(2, '0') : '';
   return y ? `${d}.${mo}.${y}` : `${d}.${mo}`;
 }
+// Для сопоставления — только ДД.ММ
+function normalizeDateForMatch(s) {
+  const p = tryParseDate(s);
+  if (!p) return String(s || '').trim();
+  return `${String(p.d).padStart(2,'0')}.${String(p.mo).padStart(2,'0')}`;
+}
+// Для ников — trim + lowercase + подчёркивания/точки/дефисы → пробелы
+function normalizeNickForMatch(s) {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[._\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PARSER
+//  PARSER (отчёта)
 // ═══════════════════════════════════════════════════════════════
 function parse(text) {
-  const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
-    .filter(l => !RE_HEADER.test(l));
-  const firstDataIdx = lines.findIndex(l => RE_DATE.test(l) || RE_TIME.test(l));
+  const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean).filter(l => !RE_HEADER.test(l));
+  const firstDataIdx = lines.findIndex(l => isDate(l) || isTime(l));
   if (firstDataIdx === -1) return { format: null, records: [] };
-
   const leadingLines = lines.slice(0, firstDataIdx);
   const restLines = lines.slice(firstDataIdx);
-  const hasInterspersedNicks = restLines.some(l => !RE_DATE.test(l) && !RE_TIME.test(l));
-
+  const hasInterspersedNicks = restLines.some(l => !isDate(l) && !isTime(l));
   if (hasInterspersedNicks) {
-    const firstIsData = RE_DATE.test(lines[0]) || RE_TIME.test(lines[0]);
-    if (firstIsData) {
-      return { format: 'C', records: parseNickBottom(lines) };
-    }
+    const firstIsData = isDate(lines[0]) || isTime(lines[0]);
+    if (firstIsData) return { format: 'C', records: parseNickBottom(lines) };
     return { format: 'A', records: parseNickTop(lines) };
   }
-  return { format: 'B', records: parseListFirst(leadingLines, restLines) };
+  // Формат B: сверху список ников, ниже — данные.
+  // Отфильтруем «шапку» — оставляем только валидные ники.
+  const cleanNicks = leadingLines.filter(isNickFormat);
+  return { format: 'B', records: parseListFirst(cleanNicks, restLines) };
 }
-
 function tokensToRows(tokens) {
   const rows = [];
   for (let i = 0; i < tokens.length - 1; i++) {
@@ -842,56 +814,62 @@ function tokensToRows(tokens) {
   }
   return rows;
 }
-
 function makeToken(line) {
-  if (RE_DATE.test(line)) return { type: 'date', value: normalizeDate(line) };
-  return { type: 'time', value: line };
+  if (isDate(line)) return { type: 'date', value: normalizeDate(line) };
+  return { type: 'time', value: line.trim() };
 }
-
+// Формат A: ник сверху блока. Русский текст/заголовки игнорируются.
 function parseNickTop(lines) {
-  const blocks = [];
-  let current = null;
+  const blocks = []; let current = null;
   for (const line of lines) {
-    if (RE_DATE.test(line) || RE_TIME.test(line)) {
+    // Слипшийся «Ник_Фамилия7:32:15» — только если ник валиден
+    const merged = line.match(/^([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z][A-Za-z0-9]*)+)(\d{1,2}:\d{2}(?::\d{2})?)$/);
+    if (merged) {
+      current = { nick: merged[1], tokens: [{ type: 'time', value: merged[2] }] };
+      blocks.push(current);
+      continue;
+    }
+    if (isDate(line) || isTime(line)) {
       if (!current) { current = { nick: 'Без_ника', tokens: [] }; blocks.push(current); }
       current.tokens.push(makeToken(line));
       continue;
     }
-    current = { nick: line, tokens: [] };
-    blocks.push(current);
-    const m = line.match(/^(.+?)(\d{1,2}:\d{2}(?::\d{2})?)$/);
-    if (m && /[^\d:]/.test(m[1])) {
-      current.nick = m[1].trim();
-      current.tokens.push({ type: 'time', value: m[2] });
+    if (isNickFormat(line)) {
+      current = { nick: line, tokens: [] };
+      blocks.push(current);
+      continue;
     }
+    // Не ник и не данные — заголовок секции или произвольный текст.
+    // Игнорируем: НЕ начинаем новый блок и НЕ добавляем токен.
   }
-  return blocks
-    .map(b => ({ nick: b.nick, rows: tokensToRows(b.tokens) }))
-    .filter(b => b.rows.length > 0);
+  return blocks.map(b => ({ nick: b.nick, rows: tokensToRows(b.tokens) })).filter(b => b.rows.length > 0);
 }
-
+// Формат C: ник снизу блока.
 function parseNickBottom(lines) {
-  const blocks = [];
-  let pending = [];
+  const blocks = []; let pending = [];
   for (const line of lines) {
-    if (RE_DATE.test(line) || RE_TIME.test(line)) {
+    if (isDate(line) || isTime(line)) {
       pending.push(makeToken(line));
-    } else {
+    } else if (isNickFormat(line)) {
       blocks.push({ nick: line, rows: tokensToRows(pending) });
       pending = [];
+    } else {
+      // Не ник и не данные. Если уже накопились данные — закрываем блок как «Без_ника».
+      if (pending.length) {
+        blocks.push({ nick: 'Без_ника', rows: tokensToRows(pending) });
+        pending = [];
+      }
+      // Пустой pending + не-ник: просто пропускаем.
     }
   }
-  if (pending.length) {
-    blocks.push({ nick: 'Без_ника', rows: tokensToRows(pending) });
-  }
+  if (pending.length) blocks.push({ nick: 'Без_ника', rows: tokensToRows(pending) });
   return blocks.filter(b => b.rows.length > 0);
 }
-
 function parseListFirst(nicks, dataLines) {
   const tokens = [];
   for (const line of dataLines) {
-    if (RE_DATE.test(line)) tokens.push({ type: 'date', value: normalizeDate(line) });
-    else if (RE_TIME.test(line)) tokens.push({ type: 'time', value: line });
+    if (isDate(line)) tokens.push({ type: 'date', value: normalizeDate(line) });
+    else if (isTime(line)) tokens.push({ type: 'time', value: line.trim() });
   }
   const pairs = tokensToRows(tokens);
   if (!pairs.length) return [];
@@ -909,14 +887,13 @@ function parseListFirst(nicks, dataLines) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  MATRIX
+//  MATRIX / TSV / CSV
 // ═══════════════════════════════════════════════════════════════
 function buildMatrix(records, order) {
   const dateSet = new Set();
   records.forEach(r => r.rows.forEach(x => dateSet.add(x.date)));
   let dates = [...dateSet].sort((a, b) => dateKey(a) - dateKey(b));
   if (order === 'desc') dates.reverse();
-
   const map = new Map();
   for (const r of records) {
     if (!map.has(r.nick)) map.set(r.nick, new Map());
@@ -925,10 +902,6 @@ function buildMatrix(records, order) {
   }
   return { dates, map };
 }
-
-// ═══════════════════════════════════════════════════════════════
-//  TSV / CSV
-// ═══════════════════════════════════════════════════════════════
 function buildTsvOnlyTimes(matrix, orientation) {
   const { dates, map } = matrix;
   const nicks = [...map.keys()];
@@ -938,18 +911,12 @@ function buildTsvOnlyTimes(matrix, orientation) {
     return out.join('\n');
   } else {
     const out = [];
-    for (const d of dates) {
-      out.push(nicks.map(nick => {
-        const dm = map.get(nick);
-        return dm.has(d) ? dm.get(d) : '';
-      }).join('\t'));
-    }
+    for (const d of dates) out.push(nicks.map(n => { const dm = map.get(n); return dm.has(d) ? dm.get(d) : ''; }).join('\t'));
     return out.join('\n');
   }
 }
 function buildSingleTsv(nick, matrix, orientation) {
-  const { dates, map } = matrix;
-  const dm = map.get(nick);
+  const { dates, map } = matrix; const dm = map.get(nick);
   return orientation === 'h'
     ? dates.map(d => dm.has(d) ? dm.get(d) : '').join('\t')
     : dates.map(d => dm.has(d) ? dm.get(d) : '').join('\n');
@@ -960,77 +927,48 @@ function buildCsv(matrix, orientation) {
   const rows = [];
   if (orientation === 'h') {
     rows.push(['Ник', ...dates].map(csvEscape).join(','));
-    for (const [nick, dm] of map) {
-      rows.push([nick, ...dates.map(d => dm.has(d) ? dm.get(d) : '')].map(csvEscape).join(','));
-    }
+    for (const [nick, dm] of map) rows.push([nick, ...dates.map(d => dm.has(d) ? dm.get(d) : '')].map(csvEscape).join(','));
   } else {
     rows.push(['Дата', ...nicks].map(csvEscape).join(','));
     for (const d of dates) {
       const cells = [d];
-      for (const nick of nicks) {
-        const dm = map.get(nick);
-        cells.push(dm.has(d) ? dm.get(d) : '');
-      }
+      for (const nick of nicks) { const dm = map.get(nick); cells.push(dm.has(d) ? dm.get(d) : ''); }
       rows.push(cells.map(csvEscape).join(','));
     }
   }
   return '\uFEFF' + rows.join('\r\n');
 }
-function csvEscape(v) {
-  const s = String(v ?? '');
-  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-}
+function csvEscape(v) { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 
 // ═══════════════════════════════════════════════════════════════
-//  PREVIEW
+//  PREVIEW (текст)
 // ═══════════════════════════════════════════════════════════════
 function buildPreviewHtml(matrix, orientation) {
   const { dates, map } = matrix;
   const nicks = [...map.keys()];
   if (orientation === 'h') {
-    let html = '<table class="preview"><thead><tr>';
-    html += '<th class="num-col">#</th><th class="label-col">Ник</th>';
+    let html = '<table class="preview"><thead><tr><th class="num-col">#</th><th class="label-col">Ник</th>';
     dates.forEach(d => { html += `<th>${escapeHtml(d)}</th>`; });
     html += '<th></th></tr></thead><tbody>';
     let i = 0;
     for (const [nick, dm] of map) {
       i++;
-      html += '<tr>';
-      html += `<td class="num-col">${i}</td>`;
-      html += `<td class="label-col" title="${escapeHtml(nick)}">${escapeHtml(nick)}</td>`;
-      dates.forEach(d => {
-        const v = dm.get(d) || '';
-        html += v ? `<td>${escapeHtml(v)}</td>` : `<td class="empty">—</td>`;
-      });
-      html += `<td><button class="row-btn" data-nick="${escapeHtml(nick)}" title="Скопировать строку">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </button></td></tr>`;
+      html += `<tr><td class="num-col">${i}</td><td class="label-col" title="${escapeHtml(nick)}">${escapeHtml(nick)}</td>`;
+      dates.forEach(d => { const v = dm.get(d) || ''; html += v ? `<td>${escapeHtml(v)}</td>` : '<td class="empty">—</td>'; });
+      html += `<td><button class="row-btn" data-nick="${escapeHtml(nick)}" title="Скопировать строку"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></td></tr>`;
     }
     return html + '</tbody></table>';
   } else {
-    let html = '<table class="preview"><thead><tr>';
-    html += '<th class="num-col">#</th><th class="label-col-wide">Дата</th>';
+    let html = '<table class="preview"><thead><tr><th class="num-col">#</th><th class="label-col-wide">Дата</th>';
     for (const nick of nicks) {
-      html += `<th><div class="header-copy">
-        <span class="nick-name" title="${escapeHtml(nick)}">${escapeHtml(nick)}</span>
-        <button class="copy-mini" data-nick="${escapeHtml(nick)}" title="Скопировать столбец">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Копировать
-        </button>
-      </div></th>`;
+      html += `<th><div class="header-copy"><span class="nick-name" title="${escapeHtml(nick)}">${escapeHtml(nick)}</span><button class="copy-mini" data-nick="${escapeHtml(nick)}" title="Скопировать столбец"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Копировать</button></div></th>`;
     }
     html += '</tr></thead><tbody>';
     let i = 0;
     for (const d of dates) {
       i++;
-      html += '<tr>';
-      html += `<td class="num-col">${i}</td>`;
-      html += `<td class="label-col-wide">${escapeHtml(d)}</td>`;
-      for (const nick of nicks) {
-        const dm = map.get(nick);
-        const v = dm.get(d) || '';
-        html += v ? `<td>${escapeHtml(v)}</td>` : `<td class="empty">—</td>`;
-      }
+      html += `<tr><td class="num-col">${i}</td><td class="label-col-wide">${escapeHtml(d)}</td>`;
+      for (const nick of nicks) { const dm = map.get(nick); const v = dm.get(d) || ''; html += v ? `<td>${escapeHtml(v)}</td>` : '<td class="empty">—</td>'; }
       html += '</tr>';
     }
     return html + '</tbody></table>';
@@ -1040,39 +978,37 @@ function buildPreviewHtml(matrix, orientation) {
 // ═══════════════════════════════════════════════════════════════
 //  UI refs
 // ═══════════════════════════════════════════════════════════════
-const $input       = document.getElementById('input');
-const $output      = document.getElementById('output');
-const $outputHint  = document.getElementById('outputHint');
+const $input = document.getElementById('input');
+const $output = document.getElementById('output');
+const $outputHint = document.getElementById('outputHint');
 const $previewWrap = document.getElementById('previewWrap');
-const $sampleA     = document.getElementById('sampleA');
-const $sampleB     = document.getElementById('sampleB');
-const $sampleC     = document.getElementById('sampleC');
-const $clear       = document.getElementById('clear');
+const $sampleA = document.getElementById('sampleA');
+const $sampleB = document.getElementById('sampleB');
+const $sampleC = document.getElementById('sampleC');
+const $clear = document.getElementById('clear');
 const $formatBadge = document.getElementById('formatBadge');
-const $orderAscLabel  = document.getElementById('orderAscLabel');
+const $orderAscLabel = document.getElementById('orderAscLabel');
 const $orderDescLabel = document.getElementById('orderDescLabel');
-const $copyAll     = document.getElementById('copyAll');
+const $copyAll = document.getElementById('copyAll');
 const $copyAllText = document.getElementById('copyAllText');
-const $exportCsv   = document.getElementById('exportCsv');
+const $exportCsv = document.getElementById('exportCsv');
 const $collapseToggle = document.getElementById('collapseToggle');
-
-const $presetSelect  = document.getElementById('presetSelect');
-const $presetLoad    = document.getElementById('presetLoad');
-const $presetDelete  = document.getElementById('presetDelete');
-const $presetName    = document.getElementById('presetName');
-const $presetSave    = document.getElementById('presetSave');
-const $presetCount   = document.getElementById('presetCount');
-
-const $chipFormat  = document.getElementById('chipFormat');
+const $presetSelect = document.getElementById('presetSelect');
+const $presetLoad = document.getElementById('presetLoad');
+const $presetDelete = document.getElementById('presetDelete');
+const $presetName = document.getElementById('presetName');
+const $presetSave = document.getElementById('presetSave');
+const $presetCount = document.getElementById('presetCount');
+const $chipFormat = document.getElementById('chipFormat');
 const $chipFormatText = document.getElementById('chipFormatText');
-const $chipNicks   = document.getElementById('chipNicks');
-const $chipDates   = document.getElementById('chipDates');
-const $chipCells   = document.getElementById('chipCells');
-const $chipEmpty   = document.getElementById('chipEmpty');
+const $chipNicks = document.getElementById('chipNicks');
+const $chipDates = document.getElementById('chipDates');
+const $chipCells = document.getElementById('chipCells');
+const $chipEmpty = document.getElementById('chipEmpty');
 
 const STORAGE_KEY = 'excel-time-helper-input';
-const ORIENT_KEY  = 'excel-time-helper-orientation';
-const ORDER_KEY   = 'excel-time-helper-order';
+const ORIENT_KEY = 'excel-time-helper-orientation';
+const ORDER_KEY = 'excel-time-helper-order';
 let lastMatrix = null;
 
 // ═══════════════════════════════════════════════════════════════
@@ -1228,80 +1164,39 @@ Nikita_Sokolov`;
 // ═══════════════════════════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════════════════════════
-function getOrder() {
-  return document.querySelector('input[name="order"]:checked').value;
-}
-function getOrientation() {
-  return document.querySelector('input[name="orientation"]:checked').value;
-}
-
+function getOrder() { return document.querySelector('input[name="order"]:checked').value; }
+function getOrientation() { return document.querySelector('input[name="orientation"]:checked').value; }
 function updateOrderLabels() {
   const v = getOrientation() === 'v';
-  $orderAscLabel.textContent  = v ? 'Старые сверху' : 'Старые слева';
+  $orderAscLabel.textContent = v ? 'Старые сверху' : 'Старые слева';
   $orderDescLabel.textContent = v ? 'Новые сверху' : 'Новые слева';
-  $outputHint.textContent = v
-    ? '(строки — даты, столбцы — ники)'
-    : '(строки — ники, столбцы — даты)';
+  $outputHint.textContent = v ? '(строки — даты, столбцы — ники)' : '(строки — ники, столбцы — даты)';
 }
-
 function showFormatBadge(format) {
   if (!format) { $formatBadge.style.display = 'none'; return; }
-  const labels = {
-    A: 'Формат A (ник сверху)',
-    B: 'Формат B (список ников)',
-    C: 'Формат C (ник снизу)'
-  };
-  const cls = format.toLowerCase();
-  $formatBadge.className = 'format-badge ' + cls;
+  const labels = { A: 'Формат A (ник сверху)', B: 'Формат B (список ников)', C: 'Формат C (ник снизу)' };
+  $formatBadge.className = 'format-badge ' + format.toLowerCase();
   $formatBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' + (labels[format] || ('Формат ' + format));
 }
-
 function updateQuickStats(matrix, format) {
   const hide = (el) => el.classList.add('hidden');
   const show = (el) => el.classList.remove('hidden');
-
-  if (!matrix) {
-    [$chipFormat, $chipNicks, $chipDates, $chipCells, $chipEmpty].forEach(hide);
-    return;
-  }
+  if (!matrix) { [$chipFormat, $chipNicks, $chipDates, $chipCells, $chipEmpty].forEach(hide); return; }
   let filled = 0, empty = 0;
-  for (const dm of matrix.map.values()) {
-    for (const d of matrix.dates) {
-      if (dm.has(d)) filled++; else empty++;
-    }
-  }
+  for (const dm of matrix.map.values()) for (const d of matrix.dates) { if (dm.has(d)) filled++; else empty++; }
   $chipFormatText.textContent = 'Формат ' + format;
   document.getElementById('qsNicks').textContent = matrix.map.size;
   document.getElementById('qsDates').textContent = matrix.dates.length;
   document.getElementById('qsCells').textContent = filled;
   document.getElementById('qsEmpty').textContent = empty;
-
   show($chipFormat); show($chipNicks); show($chipDates); show($chipCells);
   if (empty > 0) show($chipEmpty); else hide($chipEmpty);
 }
-
 function emptyPreviewHtml() {
-  return `<div class="empty-state">
-    <div class="icon-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
-      </svg>
-    </div>
-    <p>Здесь появится таблица.</p>
-    <p>Значения — только время, без ников и заголовков.</p>
-  </div>`;
+  return `<div class="empty-state"><div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></div><p>Здесь появится таблица.</p><p>Значения — только время, без ников и заголовков.</p></div>`;
 }
 function errorPreviewHtml() {
-  return `<div class="empty-state">
-    <div class="icon-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
-    </div>
-    <p>Проверь формат: время вида <code>9:14:17</code> и дата вида <code>28.09.26</code> должны идти парами.</p>
-  </div>`;
+  return `<div class="empty-state"><div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><p>Проверь формат: время вида <code>9:14:17</code> и дата вида <code>28.09.26</code> должны идти парами, а ник — в формате <code>Nick_Name</code>.</p></div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1309,126 +1204,75 @@ function errorPreviewHtml() {
 // ═══════════════════════════════════════════════════════════════
 function autoPresetName(data) {
   const firstLine = (data || '').split(/\r?\n/).map(s => s.trim()).find(Boolean);
-  if (firstLine) {
-    return firstLine.length > 28 ? firstLine.slice(0, 28) + '…' : firstLine;
-  }
+  if (firstLine) return firstLine.length > 28 ? firstLine.slice(0, 28) + '…' : firstLine;
   return 'Без названия';
 }
-
 function renderPresetSelect() {
   const presets = loadPresets();
   const currentVal = $presetSelect.value;
-
   $presetSelect.innerHTML = '<option value="">— выберите пресет —</option>';
-  presets.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.name;
-    $presetSelect.appendChild(opt);
-  });
-
-  if (currentVal && presets.some(p => p.id === currentVal)) {
-    $presetSelect.value = currentVal;
-  }
-
-  const hasPresets = presets.length > 0;
-  $presetCount.textContent = hasPresets
+  presets.forEach(p => { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.name; $presetSelect.appendChild(opt); });
+  if (currentVal && presets.some(p => p.id === currentVal)) $presetSelect.value = currentVal;
+  $presetCount.textContent = presets.length
     ? `${presets.length} ${presets.length === 1 ? 'пресет' : (presets.length < 5 ? 'пресета' : 'пресетов')}`
     : 'нет пресетов';
-
   updatePresetButtons();
 }
-
 function updatePresetButtons() {
   const hasSel = !!$presetSelect.value;
   $presetLoad.disabled = !hasSel;
   $presetDelete.disabled = !hasSel;
 }
-
 $presetSelect.addEventListener('change', () => {
   updatePresetButtons();
   const sel = loadPresets().find(p => p.id === $presetSelect.value);
   if (sel) $presetName.value = sel.name;
 });
-
 $presetLoad.addEventListener('click', () => {
-  const id = $presetSelect.value;
-  if (!id) return;
-  const p = loadPresets().find(x => x.id === id);
-  if (!p) return;
-  $input.value = p.data;
-  process();
+  const id = $presetSelect.value; if (!id) return;
+  const p = loadPresets().find(x => x.id === id); if (!p) return;
+  $input.value = p.data; process();
   showToast(`Пресет «${p.name}» загружен`, 'ok');
 });
-
 $presetSave.addEventListener('click', () => {
   const data = $input.value.trim();
-  if (!data) { showToast('Сначала введите данные в поле отчёта', 'warn'); return; }
+  if (!data) { showToast('Сначала введите данные', 'warn'); return; }
   let name = $presetName.value.trim();
   if (!name) name = autoPresetName(data);
-
   const presets = loadPresets();
   const existing = presets.find(p => p.name === name);
-
   if (existing) {
-    existing.data = data;
-    existing.updatedAt = Date.now();
-    savePresetsArray(presets);
-    renderPresetSelect();
-    $presetSelect.value = existing.id;
-    updatePresetButtons();
+    existing.data = data; existing.updatedAt = Date.now();
+    savePresetsArray(presets); renderPresetSelect();
+    $presetSelect.value = existing.id; updatePresetButtons();
     showToast(`Пресет «${name}» обновлён`, 'ok');
   } else {
-    const newP = {
-      id: makeId(),
-      name,
-      data,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    presets.push(newP);
-    savePresetsArray(presets);
-    renderPresetSelect();
-    $presetSelect.value = newP.id;
-    updatePresetButtons();
+    const newP = { id: makeId(), name, data, createdAt: Date.now(), updatedAt: Date.now() };
+    presets.push(newP); savePresetsArray(presets); renderPresetSelect();
+    $presetSelect.value = newP.id; updatePresetButtons();
     $presetName.value = newP.name;
     showToast(`Пресет «${name}» сохранён`, 'ok');
   }
 });
-
 $presetDelete.addEventListener('click', () => {
-  const id = $presetSelect.value;
-  if (!id) return;
-  const presets = loadPresets();
-  const p = presets.find(x => x.id === id);
-  if (!p) return;
-  const filtered = presets.filter(x => x.id !== id);
-  savePresetsArray(filtered);
-  renderPresetSelect();
-  $presetName.value = '';
+  const id = $presetSelect.value; if (!id) return;
+  const presets = loadPresets(); const p = presets.find(x => x.id === id); if (!p) return;
+  savePresetsArray(presets.filter(x => x.id !== id));
+  renderPresetSelect(); $presetName.value = '';
   showToast(`Пресет «${p.name}» удалён`, 'ok');
 });
 
 // ═══════════════════════════════════════════════════════════════
-//  EXPORT / IMPORT (BACKUP)
+//  BACKUP
 // ═══════════════════════════════════════════════════════════════
-const BACKUP_VERSION = 1;
-
-function collectBackup() {
-  return {
-    version: BACKUP_VERSION,
-    exportedAt: new Date().toISOString(),
-    presets: loadPresets(),
-    input: $input.value,
-    orientation: getOrientation(),
-    order: getOrder(),
-    theme: document.documentElement.getAttribute('data-theme')
-  };
-}
-
 function exportBackup() {
   try {
-    const data = collectBackup();
+    const data = {
+      version: 1, exportedAt: new Date().toISOString(),
+      presets: loadPresets(), input: $input.value,
+      orientation: getOrientation(), order: getOrder(),
+      theme: document.documentElement.getAttribute('data-theme')
+    };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1437,92 +1281,43 @@ function exportBackup() {
     a.download = `excel-time-backup-${stamp}.json`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast('Бэкап сохранён в файл', 'ok');
-  } catch (err) {
-    showToast('Не удалось сохранить: ' + err.message, 'err');
-  }
+    showToast('Бэкап сохранён', 'ok');
+  } catch (err) { showToast('Ошибка: ' + err.message, 'err'); }
 }
-
 async function importBackupFromFile(file) {
   const text = await file.text();
   let data;
-  try { data = JSON.parse(text); }
-  catch (e) { showToast('Файл повреждён или не JSON', 'err'); return; }
-  if (!data || typeof data !== 'object') { showToast('Неверный формат файла', 'err'); return; }
-
-  const merge = confirm(
-    'ОК — ДОБАВИТЬ/обновить пресеты из файла (существующие с тем же именем перезапишутся).\n' +
-    'Отмена — ЗАМЕНИТЬ всё содержимое данными из файла.'
-  );
-
+  try { data = JSON.parse(text); } catch (e) { showToast('Неверный JSON', 'err'); return; }
+  const merge = confirm('ОК — добавить/обновить пресеты.\nОтмена — заменить всё.');
   const incoming = Array.isArray(data.presets) ? data.presets : [];
   const current = loadPresets();
   let finalPresets;
-
   if (merge) {
     finalPresets = current.slice();
     for (const p of incoming) {
-      if (!p || typeof p !== 'object' || !p.name || !p.data) continue;
+      if (!p || !p.name || !p.data) continue;
       const idx = finalPresets.findIndex(x => x.name === p.name);
-      const clean = {
-        id: (p.id && typeof p.id === 'string') ? p.id : makeId(),
-        name: String(p.name),
-        data: String(p.data),
-        createdAt: p.createdAt || Date.now(),
-        updatedAt: Date.now()
-      };
-      if (idx >= 0) {
-        clean.id = finalPresets[idx].id;
-        finalPresets[idx] = clean;
-      } else {
-        finalPresets.push(clean);
-      }
+      const clean = { id: p.id || makeId(), name: String(p.name), data: String(p.data), createdAt: p.createdAt || Date.now(), updatedAt: Date.now() };
+      if (idx >= 0) { clean.id = finalPresets[idx].id; finalPresets[idx] = clean; }
+      else finalPresets.push(clean);
     }
   } else {
-    finalPresets = incoming
-      .filter(p => p && typeof p === 'object' && p.name && p.data)
-      .map(p => ({
-        id: (p.id && typeof p.id === 'string') ? p.id : makeId(),
-        name: String(p.name),
-        data: String(p.data),
-        createdAt: p.createdAt || Date.now(),
-        updatedAt: p.updatedAt || Date.now()
-      }));
+    finalPresets = incoming.filter(p => p && p.name && p.data).map(p => ({ id: p.id || makeId(), name: String(p.name), data: String(p.data), createdAt: p.createdAt || Date.now(), updatedAt: p.updatedAt || Date.now() }));
   }
-
   savePresetsArray(finalPresets);
-
-  if (typeof data.input === 'string') {
-    $input.value = data.input;
-  }
-  if (data.orientation === 'h' || data.orientation === 'v') {
-    document.querySelector(`input[name="orientation"][value="${data.orientation}"]`).checked = true;
-    try { localStorage.setItem(ORIENT_KEY, data.orientation); } catch (e) {}
-  }
-  if (data.order === 'asc' || data.order === 'desc') {
-    document.querySelector(`input[name="order"][value="${data.order}"]`).checked = true;
-    try { localStorage.setItem(ORDER_KEY, data.order); } catch (e) {}
-  }
-  if (data.theme === 'light' || data.theme === 'dark') {
-    applyTheme(data.theme);
-  }
-
-  renderPresetSelect();
-  updateOrderLabels();
-  process();
-  showToast(`Импорт завершён: ${finalPresets.length} пресетов`, 'ok');
+  if (typeof data.input === 'string') $input.value = data.input;
+  if (data.orientation === 'h' || data.orientation === 'v') document.querySelector(`input[name="orientation"][value="${data.orientation}"]`).checked = true;
+  if (data.order === 'asc' || data.order === 'desc') document.querySelector(`input[name="order"][value="${data.order}"]`).checked = true;
+  if (data.theme === 'light' || data.theme === 'dark') applyTheme(data.theme);
+  renderPresetSelect(); updateOrderLabels(); process();
+  showToast(`Импорт: ${finalPresets.length} пресетов`, 'ok');
 }
-
 document.getElementById('exportData').addEventListener('click', exportBackup);
-document.getElementById('importData').addEventListener('click', () => {
-  document.getElementById('importFile').click();
-});
+document.getElementById('importData').addEventListener('click', () => document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change', async (e) => {
-  const file = e.target.files?.[0];
-  e.target.value = '';
+  const file = e.target.files?.[0]; e.target.value = '';
   if (!file) return;
-  try { await importBackupFromFile(file); }
-  catch (err) { showToast('Ошибка чтения файла: ' + err.message, 'err'); }
+  try { await importBackupFromFile(file); } catch (err) { showToast('Ошибка: ' + err.message, 'err'); }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -1532,195 +1327,574 @@ function process() {
   const raw = $input.value.trim();
   const orientation = getOrientation();
   try { localStorage.setItem(STORAGE_KEY, $input.value); } catch (e) {}
-
   if (!raw) {
-    $previewWrap.innerHTML = emptyPreviewHtml();
-    $output.value = '';
-    updateQuickStats(null, null);
-    showFormatBadge(null);
-    lastMatrix = null;
+    $previewWrap.innerHTML = emptyPreviewHtml(); $output.value = '';
+    updateQuickStats(null, null); showFormatBadge(null); lastMatrix = null;
+    if (excelSheet && excelStructure) renderExcelPreview();
     return;
   }
-
   let parsed;
-  try { parsed = parse(raw); }
-  catch (e) { showToast('Ошибка разбора: ' + e.message, 'err'); return; }
-
+  try { parsed = parse(raw); } catch (e) { showToast('Ошибка: ' + e.message, 'err'); return; }
   const { format, records } = parsed;
   const total = records.reduce((s, r) => s + r.rows.length, 0);
-
   if (!total) {
-    $previewWrap.innerHTML = errorPreviewHtml();
-    $output.value = '';
-    updateQuickStats(null, null);
-    showFormatBadge(null);
-    lastMatrix = null;
+    $previewWrap.innerHTML = errorPreviewHtml(); $output.value = '';
+    updateQuickStats(null, null); showFormatBadge(null); lastMatrix = null;
+    if (excelSheet && excelStructure) renderExcelPreview();
     return;
   }
-
   const matrix = buildMatrix(records, getOrder());
   lastMatrix = matrix;
   showFormatBadge(format);
-
   $output.value = buildTsvOnlyTimes(matrix, orientation);
   $previewWrap.innerHTML = buildPreviewHtml(matrix, orientation);
   updateQuickStats(matrix, format);
-
+  if (excelSheet && excelStructure) renderExcelPreview();
   $previewWrap.querySelectorAll('.row-btn, .copy-mini').forEach(btn => {
     btn.addEventListener('click', async () => {
       const nick = btn.getAttribute('data-nick');
       await copyText(buildSingleTsv(nick, lastMatrix, orientation));
       const what = orientation === 'h' ? 'строку' : 'столбец';
       showToast(`Скопировано для «${nick}» (${what})`, 'ok');
-
-      if (btn.classList.contains('copy-mini')) {
-        const old = btn.innerHTML;
-        btn.classList.add('copied');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Готово';
-        setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = old; }, 1200);
-      } else {
-        const old = btn.innerHTML;
-        btn.classList.add('copied');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-        setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = old; }, 1200);
-      }
+      const old = btn.innerHTML;
+      btn.classList.add('copied');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' + (btn.classList.contains('copy-mini') ? 'Готово' : '');
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = old; }, 1200);
     });
   });
 }
-
 let debounceTimer = null;
-function scheduleProcess() {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(process, 250);
-}
+function scheduleProcess() { clearTimeout(debounceTimer); debounceTimer = setTimeout(process, 250); }
 
-// ═══════════════════════════════════════════════════════════════
-//  EVENTS
-// ═══════════════════════════════════════════════════════════════
 $input.addEventListener('input', scheduleProcess);
-$input.addEventListener('paste', () => { setTimeout(process, 30); });
-$sampleA.addEventListener('click', () => { $input.value = SAMPLE_A; process(); showToast('Пример A загружен', 'ok'); });
-$sampleB.addEventListener('click', () => { $input.value = SAMPLE_B; process(); showToast('Пример B загружен', 'ok'); });
-$sampleC.addEventListener('click', () => { $input.value = SAMPLE_C; process(); showToast('Пример C загружен (ник снизу)', 'ok'); });
-
-$clear.addEventListener('click', () => {
-  $input.value = '';
-  process();
-  $input.focus();
-  showToast('Очищено', 'ok');
-});
-
+$input.addEventListener('paste', () => setTimeout(process, 30));
+$sampleA.addEventListener('click', () => { $input.value = SAMPLE_A; process(); showToast('Пример A', 'ok'); });
+$sampleB.addEventListener('click', () => { $input.value = SAMPLE_B; process(); showToast('Пример B', 'ok'); });
+$sampleC.addEventListener('click', () => { $input.value = SAMPLE_C; process(); showToast('Пример C', 'ok'); });
+$clear.addEventListener('click', () => { $input.value = ''; process(); $input.focus(); showToast('Очищено', 'ok'); });
 document.querySelectorAll('input[name="order"]').forEach(el => {
-  el.addEventListener('change', () => {
-    try { localStorage.setItem(ORDER_KEY, getOrder()); } catch (e) {}
-    process();
-  });
+  el.addEventListener('change', () => { try { localStorage.setItem(ORDER_KEY, getOrder()); } catch (e) {} process(); });
 });
 document.querySelectorAll('input[name="orientation"]').forEach(el => {
-  el.addEventListener('change', () => {
-    try { localStorage.setItem(ORIENT_KEY, getOrientation()); } catch (e) {}
-    updateOrderLabels();
-    process();
-  });
+  el.addEventListener('change', () => { try { localStorage.setItem(ORIENT_KEY, getOrientation()); } catch (e) {} updateOrderLabels(); process(); });
 });
-
 $collapseToggle.addEventListener('click', () => {
   const collapsed = $input.classList.toggle('collapsed');
   $collapseToggle.classList.toggle('active', collapsed);
-  $collapseToggle.setAttribute('aria-label', collapsed ? 'Развернуть' : 'Свернуть');
 });
-
 ['dragenter', 'dragover'].forEach(ev => {
-  $input.addEventListener(ev, e => {
-    e.preventDefault();
-    $input.classList.add('dragover');
-  });
+  $input.addEventListener(ev, e => { e.preventDefault(); $input.classList.add('dragover'); });
 });
 ['dragleave', 'drop'].forEach(ev => {
-  $input.addEventListener(ev, e => {
-    e.preventDefault();
-    $input.classList.remove('dragover');
-  });
+  $input.addEventListener(ev, e => { e.preventDefault(); $input.classList.remove('dragover'); });
 });
 $input.addEventListener('drop', async e => {
-  const file = e.dataTransfer?.files?.[0];
-  if (!file) return;
-  if (!/\.(txt|csv|log)$/i.test(file.name)) {
-    showToast('Поддерживаются только .txt / .csv / .log', 'warn');
-    return;
-  }
-  const text = await file.text();
-  $input.value = text;
-  process();
+  const file = e.dataTransfer?.files?.[0]; if (!file) return;
+  if (!/\.(txt|csv|log)$/i.test(file.name)) { showToast('Только .txt / .csv / .log', 'warn'); return; }
+  const text = await file.text(); $input.value = text; process();
   showToast(`Файл «${file.name}» загружен`, 'ok');
 });
-
 document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); process(); }
-  if (e.key === 'Escape' && document.activeElement === $input) {
-    $input.value = '';
-    process();
-  }
-  if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
-    if (lastMatrix) { e.preventDefault(); doCopyAll(); }
-  }
-  if (e.ctrlKey && (e.key === 'S' || e.key === 's')) {
-    e.preventDefault();
-    $presetSave.click();
-  }
+  if (e.key === 'Escape' && document.activeElement === $input) { $input.value = ''; process(); }
+  if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) { if (lastMatrix) { e.preventDefault(); doCopyAll(); } }
+  if (e.ctrlKey && (e.key === 'S' || e.key === 's')) { e.preventDefault(); $presetSave.click(); }
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  COPY / EXPORT
-// ═══════════════════════════════════════════════════════════════
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); }
   catch (e) {
-    const ta = document.createElement('textarea');
-    ta.value = text;
+    const ta = document.createElement('textarea'); ta.value = text;
     ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+    document.execCommand('copy'); document.body.removeChild(ta);
   }
 }
-
 async function doCopyAll() {
   const text = $output.value;
   if (!text) { showToast('Сначала вставь данные', 'warn'); return; }
   await copyText(text);
   $copyAll.classList.add('copied');
   $copyAllText.textContent = 'Скопировано — вставляй в Excel';
-  showToast('Всё в буфере — вставляй в Excel (Ctrl+V)', 'ok');
-  setTimeout(() => {
-    $copyAll.classList.remove('copied');
-    $copyAllText.textContent = 'Скопировать все времена';
-  }, 2000);
+  showToast('Всё в буфере (Ctrl+V в Excel)', 'ok');
+  setTimeout(() => { $copyAll.classList.remove('copied'); $copyAllText.textContent = 'Скопировать все времена'; }, 2000);
 }
 $copyAll.addEventListener('click', doCopyAll);
-
 $exportCsv.addEventListener('click', () => {
   if (!lastMatrix) { showToast('Сначала вставь данные', 'warn'); return; }
   const csv = buildCsv(lastMatrix, getOrientation());
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
+  const a = document.createElement('a'); a.href = url;
   a.download = `otchet_${getOrientation() === 'v' ? 'vertical' : 'horizontal'}_${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('CSV сохранён — открой двойным кликом', 'ok');
+  showToast('CSV сохранён', 'ok');
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  BEFORE UNLOAD
-// ═══════════════════════════════════════════════════════════════
 window.addEventListener('beforeunload', () => {
   try {
     localStorage.setItem(STORAGE_KEY, $input.value);
     localStorage.setItem(ORIENT_KEY, getOrientation());
     localStorage.setItem(ORDER_KEY, getOrder());
   } catch (e) {}
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  ═══ EXCEL LOGIC ═══
+// ═══════════════════════════════════════════════════════════════
+const $excelCard = document.getElementById('excelCard');
+const $excelLoad = document.getElementById('excelLoad');
+const $excelFile = document.getElementById('excelFile');
+const $excelClear = document.getElementById('excelClear');
+const $excelFileName = document.getElementById('excelFileName');
+const $excelInfo = document.getElementById('excelInfo');
+const $excelSheetName = document.getElementById('excelSheetName');
+const $excelNickCount = document.getElementById('excelNickCount');
+const $excelDateCount = document.getElementById('excelDateCount');
+const $excelOrientText = document.getElementById('excelOrientText');
+const $excelInfoWill = document.getElementById('excelInfoWill');
+const $excelWillCount = document.getElementById('excelWillCount');
+const $excelPreviewBox = document.getElementById('excelPreviewBox');
+const $excelGrid = document.getElementById('excelGrid');
+const $excelError = document.getElementById('excelError');
+const $excelErrorText = document.getElementById('excelErrorText');
+const $excelActions = document.getElementById('excelActions');
+const $excelFill = document.getElementById('excelFill');
+const $excelFillText = document.getElementById('excelFillText');
+const $excelDownload = document.getElementById('excelDownload');
+const $excelBadge = document.getElementById('excelBadge');
+const $excelHint = document.getElementById('excelHint');
+
+let excelWorkbook = null;
+let excelSheet = null;
+let excelStructure = null;
+let excelFileName = '';
+let excelFilledCount = 0;
+
+function excelBadgeSet(kind, text) {
+  $excelBadge.className = 'format-badge';
+  if (!kind) { $excelBadge.style.display = 'none'; return; }
+  $excelBadge.className = 'format-badge ' + kind;
+  $excelBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' + text;
+}
+
+// Универсальное извлечение строки из ячейки ExcelJS.
+// ExcelJS отдаёт время как Date (с базовой датой 1899-12-30 / 1900-01-00)
+// или как долю суток 0..1. Обрабатываем оба случая → "HH:MM:SS".
+function extractCellString(rawValue) {
+  if (rawValue == null) return '';
+
+  if (typeof rawValue === 'string') return rawValue.trim();
+
+  if (typeof rawValue === 'number') {
+    // 1) Чистое время — доля суток (0 ≤ n < 1)
+    if (rawValue >= 0 && rawValue < 1) {
+      return excelFractionToTime(rawValue);
+    }
+    // 2) Дата — serial (1..2958466 ≈ до 9999-12-31)
+    if (rawValue >= 1 && rawValue < 2958466) {
+      try {
+        const d = excelSerialToDate(Math.floor(rawValue));
+        return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}.${pad2(d.getUTCFullYear() % 100)}`;
+      } catch (e) { /* fallthrough */ }
+    }
+    return String(rawValue);
+  }
+
+  if (rawValue instanceof Date) {
+    const d = rawValue;
+    const year = d.getUTCFullYear();
+    // Excel хранит «чистое время» как дату 1899-12-30 (или 1900-01-00) → считаем временем.
+    if (year <= 1900) {
+      return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
+    }
+    return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}.${pad2(year % 100)}`;
+  }
+
+  if (typeof rawValue === 'object') {
+    if (rawValue.richText && Array.isArray(rawValue.richText)) {
+      return rawValue.richText.map(r => r.text || '').join('').trim();
+    }
+    if (rawValue.formula) {
+      const res = rawValue.result;
+      if (res != null && !(typeof res === 'object' && res.error)) {
+        const inner = extractCellString(res);
+        if (inner) return inner;
+      }
+      // Fallback: последний ник-литерал в строке формулы (IMPORTRANGE("…","Nick_Name") и т.п.)
+      const formulaStr = String(rawValue.formula);
+      const nickRe = /[""]([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z][A-Za-z0-9]*)+)[""]/g;
+      const matches = [...formulaStr.matchAll(nickRe)];
+      if (matches.length) {
+        return matches[matches.length - 1][1];
+      }
+      return '';
+    }
+    if (rawValue.text) return String(rawValue.text).trim();
+    if (rawValue.result != null) return extractCellString(rawValue.result);
+    if (rawValue.hyperlink && rawValue.text) return String(rawValue.text).trim();
+  }
+  return String(rawValue).trim();
+}
+
+// Классификация ячейки. Русский текст → 'text' и НЕ попадает в ники.
+function classifyValue(str) {
+  if (!str) return 'empty';
+  const s = String(str).trim();
+  if (!s) return 'empty';
+  if (isDate(s)) return 'date';
+  if (isTime(s)) return 'time';
+  if (isNickFormat(s)) return 'nick';
+  return 'text';
+}
+
+function analyzeSheet(sheet) {
+  const dataCells = [];
+  sheet.eachRow({ includeEmpty: false }, (row, rowNum) => {
+    row.eachCell({ includeEmpty: false }, (cell, colNum) => {
+      if (cell.isMerged && cell.master && cell.master.address !== cell.address) return;
+      const str = extractCellString(cell.value);
+      if (!str) return;
+      const kind = classifyValue(str);
+      if (kind === 'empty') return;
+      dataCells.push({ row: rowNum, col: colNum, value: str, kind });
+    });
+  });
+
+  const datesByRow = new Map(), datesByCol = new Map();
+  const nicksByRow = new Map(), nicksByCol = new Map();
+  for (const c of dataCells) {
+    if (c.kind === 'date') {
+      if (!datesByRow.has(c.row)) datesByRow.set(c.row, []);
+      datesByRow.get(c.row).push(c);
+      if (!datesByCol.has(c.col)) datesByCol.set(c.col, []);
+      datesByCol.get(c.col).push(c);
+    } else if (c.kind === 'nick') {
+      // ВАЖНО: только реальные ники (Nick_Name), а не любой текст.
+      if (!nicksByRow.has(c.row)) nicksByRow.set(c.row, []);
+      nicksByRow.get(c.row).push(c);
+      if (!nicksByCol.has(c.col)) nicksByCol.set(c.col, []);
+      nicksByCol.get(c.col).push(c);
+    }
+  }
+
+  let dateHeaderRow = null, dateHeaderRowData = null;
+  for (const [r, arr] of datesByRow) if (arr.length >= 2 && (!dateHeaderRowData || arr.length > dateHeaderRowData.length)) { dateHeaderRow = r; dateHeaderRowData = arr; }
+  let dateHeaderCol = null, dateHeaderColData = null;
+  for (const [c, arr] of datesByCol) if (arr.length >= 2 && (!dateHeaderColData || arr.length > dateHeaderColData.length)) { dateHeaderCol = c; dateHeaderColData = arr; }
+  let nickHeaderCol = null, nickHeaderColData = null;
+  for (const [c, arr] of nicksByCol) if (arr.length >= 2 && (!nickHeaderColData || arr.length > nickHeaderColData.length)) { nickHeaderCol = c; nickHeaderColData = arr; }
+  let nickHeaderRow = null, nickHeaderRowData = null;
+  for (const [r, arr] of nicksByRow) if (arr.length >= 2 && (!nickHeaderRowData || arr.length > nickHeaderRowData.length)) { nickHeaderRow = r; nickHeaderRowData = arr; }
+
+  let orientation = null;
+  if (dateHeaderRow && nickHeaderCol) orientation = 'h';
+  else if (dateHeaderCol && nickHeaderRow) orientation = 'v';
+
+  let nickCells = [], dateCells = [];
+  if (orientation === 'h') {
+    nickCells = (nicksByCol.get(nickHeaderCol) || []).filter(c => c.row > dateHeaderRow);
+    dateCells = dateHeaderRowData || [];
+  } else if (orientation === 'v') {
+    nickCells = (nicksByRow.get(nickHeaderRow) || []).filter(c => c.col > dateHeaderCol);
+    dateCells = dateHeaderColData || [];
+  }
+  const score = nickCells.length * dateCells.length;
+  return { orientation, dateHeaderRow, dateHeaderCol, nickHeaderRow, nickHeaderCol, nickCells, dateCells, score, sheetName: sheet.name, allDataCells: dataCells };
+}
+
+async function handleExcelUpload(file) {
+  if (typeof ExcelJS === 'undefined') { showToast('Библиотека ExcelJS не загрузилась. Проверь интернет.', 'err', 5000); return; }
+  excelFileName = file.name;
+  $excelFileName.textContent = file.name;
+  $excelHint.className = 'backup-hint';
+  $excelHint.querySelector('span').textContent = 'Читаю файл…';
+
+  let arrayBuffer;
+  try { arrayBuffer = await file.arrayBuffer(); }
+  catch (e) { showToast('Не удалось прочитать файл', 'err'); return; }
+
+  const wb = new ExcelJS.Workbook();
+  try { await wb.xlsx.load(arrayBuffer); }
+  catch (e) { showToast('Ошибка чтения .xlsx: ' + e.message, 'err', 5000); return; }
+
+  let bestSheet = null, bestAnalysis = null, bestScore = -1;
+  wb.eachSheet((sheet) => {
+    const analysis = analyzeSheet(sheet);
+    if (analysis.score > bestScore) { bestScore = analysis.score; bestSheet = sheet; bestAnalysis = analysis; }
+  });
+
+  excelWorkbook = wb;
+  excelSheet = bestSheet;
+  excelStructure = bestAnalysis;
+  excelFilledCount = 0;
+
+  const ok = excelStructure && excelStructure.orientation && excelStructure.score > 0;
+  if (ok) {
+    $excelClear.disabled = false;
+    $excelInfo.style.display = 'flex';
+    $excelPreviewBox.style.display = 'block';
+    $excelActions.style.display = 'flex';
+    $excelError.style.display = 'none';
+    $excelDownload.disabled = true;
+    $excelSheetName.textContent = excelStructure.sheetName;
+    $excelNickCount.textContent = excelStructure.nickCells.length;
+    $excelDateCount.textContent = excelStructure.dateCells.length;
+    $excelOrientText.textContent = excelStructure.orientation === 'h' ? 'горизонтально' : 'вертикально';
+    excelBadgeSet('ok', 'структура распознана');
+    renderExcelPreview();
+    $excelHint.className = 'backup-hint ok';
+    $excelHint.querySelector('span').textContent = 'Шаблон разобран. Загрузи текстовый отчёт и нажми «Заполнить временами».';
+    showToast(`Найдено: ${excelStructure.nickCells.length} ников × ${excelStructure.dateCells.length} дат`, 'ok', 3200);
+  } else {
+    $excelClear.disabled = false;
+    $excelInfo.style.display = 'none';
+    $excelPreviewBox.style.display = 'none';
+    $excelActions.style.display = 'none';
+    $excelError.style.display = 'block';
+    $excelErrorText.textContent = 'Не удалось распознать структуру. Нужна строка с датами (≥2) и столбец с никами вида Nick_Name (≥2).';
+    excelBadgeSet('err', 'не распознано');
+    $excelHint.className = 'backup-hint warn';
+    $excelHint.querySelector('span').textContent = 'Проверь, что в шаблоне есть явная строка с датами и столбец с никами в формате Nick_Name.';
+    showToast('Структура не распознана', 'err', 4000);
+  }
+}
+
+function buildMatchMaps() {
+  if (!excelStructure) return null;
+  const nickPos = new Map();
+  for (const nc of excelStructure.nickCells) {
+    const key = normalizeNickForMatch(nc.value);
+    if (!key) continue;
+    if (!nickPos.has(key)) nickPos.set(key, { row: nc.row, col: nc.col, original: nc.value });
+  }
+  const datePos = new Map();
+  for (const dc of excelStructure.dateCells) {
+    const norm = normalizeDateForMatch(dc.value);
+    if (!norm) continue;
+    if (!datePos.has(norm)) datePos.set(norm, { row: dc.row, col: dc.col, original: dc.value });
+  }
+  return { nickPos, datePos };
+}
+
+function renderExcelPreview() {
+  if (!excelSheet || !excelStructure) return;
+  const exOri = excelStructure.orientation;
+  const maps = buildMatchMaps();
+  if (!maps) return;
+  const { nickPos, datePos } = maps;
+
+  const fillMap = new Map();
+  let willCount = 0;
+  if (lastMatrix && lastMatrix.map.size) {
+    for (const [nick, dm] of lastMatrix.map) {
+      const np = nickPos.get(normalizeNickForMatch(nick));
+      if (!np) continue;
+      for (const [date, time] of dm) {
+        if (!time) continue;
+        const dp = datePos.get(normalizeDateForMatch(date));
+        if (!dp) continue;
+        let tr, tc;
+        if (exOri === 'h') { tr = np.row; tc = dp.col; }
+        else { tr = dp.row; tc = np.col; }
+        if (exOri === 'h' && tr <= excelStructure.dateHeaderRow) continue;
+        if (exOri === 'v' && tc <= excelStructure.dateHeaderCol) continue;
+        fillMap.set(`${tr}_${tc}`, time);
+        willCount++;
+      }
+    }
+  }
+  $excelInfoWill.style.display = willCount > 0 ? 'inline-flex' : 'none';
+  $excelWillCount.textContent = willCount;
+
+  const dataCells = excelStructure.allDataCells;
+  if (!dataCells.length) { $excelGrid.innerHTML = ''; return; }
+  let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
+  for (const c of dataCells) {
+    if (c.row < minRow) minRow = c.row;
+    if (c.row > maxRow) maxRow = c.row;
+    if (c.col < minCol) minCol = c.col;
+    if (c.col > maxCol) maxCol = c.col;
+  }
+  for (const k of fillMap.keys()) {
+    const [r, cc] = k.split('_').map(Number);
+    if (r < minRow) minRow = r;
+    if (r > maxRow) maxRow = r;
+    if (cc < minCol) minCol = cc;
+    if (cc > maxCol) maxCol = cc;
+  }
+  const maxRowsShown = 30, maxColsShown = 20;
+  const rowLimit = Math.min(maxRow, minRow + maxRowsShown - 1);
+  const colLimit = Math.min(maxCol, minCol + maxColsShown - 1);
+
+  const nickSet = new Set(), dateSet = new Set();
+  for (const c of excelStructure.nickCells) nickSet.add(`${c.row}_${c.col}`);
+  for (const c of excelStructure.dateCells) dateSet.add(`${c.row}_${c.col}`);
+
+  const colLetter = (n) => { let s=''; while(n>0){const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; };
+  const originalMap = new Map();
+  for (const c of dataCells) originalMap.set(`${c.row}_${c.col}`, c.value);
+
+  let html = '<thead><tr><th class="row-num"></th>';
+  for (let cc = minCol; cc <= colLimit; cc++) html += `<th>${colLetter(cc)}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (let r = minRow; r <= rowLimit; r++) {
+    html += `<tr><td class="row-num">${r}</td>`;
+    for (let cc = minCol; cc <= colLimit; cc++) {
+      const key = `${r}_${cc}`;
+      let v = originalMap.get(key) || '';
+      let cls = '';
+      if (fillMap.has(key)) { v = fillMap.get(key); cls = 'cell-will'; }
+      else if (nickSet.has(key) && dateSet.has(key)) { cls = 'cell-nick cell-date'; }
+      else if (nickSet.has(key)) { cls = 'cell-nick'; }
+      else if (dateSet.has(key)) { cls = 'cell-date'; }
+      html += `<td class="${cls}">${escapeHtml(v) || '&nbsp;'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  $excelGrid.innerHTML = html;
+}
+
+function applyTimesToExcel() {
+  if (!excelWorkbook || !excelSheet || !excelStructure || !excelStructure.orientation) { showToast('Сначала загрузи Excel-шаблон', 'warn'); return; }
+  if (!lastMatrix || !lastMatrix.map.size) { showToast('Сначала вставь данные в текстовый отчёт', 'warn'); return; }
+
+  const exOri = excelStructure.orientation;
+  const maps = buildMatchMaps();
+  const { nickPos, datePos } = maps;
+
+  const missingNicks = [];
+  const missingDatesSet = new Set();
+  let filled = 0;
+
+  for (const [nick, dm] of lastMatrix.map) {
+    const np = nickPos.get(normalizeNickForMatch(nick));
+    if (!np) { missingNicks.push(nick); continue; }
+    for (const [date, time] of dm) {
+      if (!time) continue;
+      const dp = datePos.get(normalizeDateForMatch(date));
+      if (!dp) { missingDatesSet.add(date); continue; }
+      let targetRow, targetCol;
+      if (exOri === 'h') { targetRow = np.row; targetCol = dp.col; }
+      else { targetRow = dp.row; targetCol = np.col; }
+      if (exOri === 'h' && targetRow <= excelStructure.dateHeaderRow) continue;
+      if (exOri === 'v' && targetCol <= excelStructure.dateHeaderCol) continue;
+      const cell = excelSheet.getCell(targetRow, targetCol);
+      const writeCell = (cell.isMerged && cell.master) ? cell.master : cell;
+      writeCell.value = time;
+      filled++;
+    }
+  }
+
+  excelFilledCount = filled;
+  $excelDownload.disabled = filled === 0;
+
+  if (filled === 0) {
+    const hints = [];
+    if (!datePos.size) hints.push('даты в шапке шаблона не распознались (в шаблоне 0 дат)');
+    if (!nickPos.size) hints.push('ники в шаблоне не распознались (в шаблоне 0 ников)');
+    if (missingNicks.length) {
+      const sample = missingNicks.slice(0, 3).join(', ');
+      hints.push(`ников из отчёта не найдено в шаблоне: ${missingNicks.length} (напр.: ${sample})`);
+    }
+    if (missingDatesSet.size) {
+      const sample = [...missingDatesSet].slice(0, 3).join(', ');
+      hints.push(`дат из отчёта нет в шаблоне: ${missingDatesSet.size} (напр.: ${sample})`);
+    }
+    const msg = hints.length
+      ? 'Заполнить не удалось: ' + hints.join('; ') + '. Ники/даты сравниваются без учёта года и регистра.'
+      : 'Заполнить не удалось: нет соответствий.';
+    showToast(msg, 'err', 9000);
+    console.warn('[excel] Не удалось заполнить.', {
+      'ников в отчёте': [...lastMatrix.map.keys()],
+      'нормализованных ников отчёта': [...lastMatrix.map.keys()].map(normalizeNickForMatch),
+      'ников в шаблоне (norm)': [...nickPos.keys()],
+      'дат в отчёте': [...new Set([...lastMatrix.map.values()].flatMap(dm => [...dm.keys()]))],
+      'нормализованных дат отчёта': [...new Set([...lastMatrix.map.values()].flatMap(dm => [...dm.keys()]))].map(normalizeDateForMatch),
+      'дат в шаблоне (norm)': [...datePos.keys()],
+      missingNicks, missingDates: [...missingDatesSet],
+    });
+    return;
+  }
+
+  renderExcelPreview();
+
+  const msg = `Заполнено ячеек: ${filled}` +
+    (missingNicks.length ? ` • ников без пары: ${missingNicks.length}` : '') +
+    (missingDatesSet.size ? ` • дат вне шаблона: ${missingDatesSet.size}` : '');
+  showToast(msg, 'ok', 4000);
+  $excelFillText.textContent = `Заполнить снова (заполнено: ${filled})`;
+  $excelHint.className = 'backup-hint ok';
+  $excelHint.querySelector('span').textContent = `Готово. Нажми «Скачать обновлённый .xlsx» — форматирование сохранится. Ников не найдено: ${missingNicks.length}.`;
+  excelBadgeSet('ok', `заполнено: ${filled}`);
+}
+
+async function downloadExcel() {
+  if (!excelWorkbook) { showToast('Нечего скачивать', 'warn'); return; }
+  try {
+    const buffer = await excelWorkbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const base = (excelFileName || 'table').replace(/\.xlsx?$/i, '');
+    a.download = `${base}_заполнено.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Файл сохранён', 'ok');
+  } catch (e) { showToast('Ошибка сохранения: ' + e.message, 'err', 4000); }
+}
+
+function resetExcel() {
+  excelWorkbook = null; excelSheet = null; excelStructure = null; excelFileName = ''; excelFilledCount = 0;
+  $excelFileName.textContent = '';
+  $excelInfo.style.display = 'none';
+  $excelPreviewBox.style.display = 'none';
+  $excelActions.style.display = 'none';
+  $excelError.style.display = 'none';
+  $excelClear.disabled = true;
+  $excelDownload.disabled = true;
+  $excelFillText.textContent = 'Заполнить временами';
+  excelBadgeSet(null);
+  $excelHint.className = 'backup-hint';
+  $excelHint.querySelector('span').textContent = 'Загрузи Excel-шаблон с никами и датами. После загрузки текстового отчёта в превью покажется, что будет вставлено (фиолетовые ячейки). Нажми «Заполнить временами» → «Скачать».';
+  $excelGrid.innerHTML = '';
+}
+
+$excelLoad.addEventListener('click', () => $excelFile.click());
+$excelFile.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0]; e.target.value = '';
+  if (!file) return;
+  try { await handleExcelUpload(file); } catch (err) { showToast('Ошибка: ' + err.message, 'err', 4000); }
+});
+$excelClear.addEventListener('click', resetExcel);
+$excelFill.addEventListener('click', applyTimesToExcel);
+$excelDownload.addEventListener('click', downloadExcel);
+
+['dragenter', 'dragover'].forEach(ev => {
+  $excelCard.addEventListener(ev, e => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) {
+      e.preventDefault();
+      $excelCard.style.borderColor = 'var(--mint-500)';
+      $excelCard.style.borderStyle = 'dashed';
+    }
+  });
+});
+['dragleave', 'drop'].forEach(ev => {
+  $excelCard.addEventListener(ev, e => {
+    e.preventDefault();
+    $excelCard.style.borderColor = '';
+    $excelCard.style.borderStyle = '';
+  });
+});
+$excelCard.addEventListener('drop', async e => {
+  const file = e.dataTransfer?.files?.[0];
+  if (!file) return;
+  if (!/\.xlsx?$/i.test(file.name)) { showToast('Только .xlsx / .xls', 'warn'); return; }
+  try { await handleExcelUpload(file); } catch (err) { showToast('Ошибка: ' + err.message, 'err', 4000); }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -1746,12 +1920,10 @@ window.addEventListener('beforeunload', () => {
   try { saved = localStorage.getItem(STORAGE_KEY) || ''; } catch (e) {}
   if (saved) { $input.value = saved; process(); }
 
-  if (!STORAGE_OK) {
-    const hint = document.getElementById('backupHint');
-    hint.classList.add('warn');
-    hint.querySelector('span').textContent =
-      'Хранилище браузера недоступно (приватный режим?). Пресеты и ввод НЕ сохранятся автоматически — обязательно пользуйся кнопкой «Сохранить всё в файл».';
-    showToast('Хранилище браузера недоступно — пользуйся бэкапом в файл', 'warn', 6000);
+  if (!STORAGE_OK) showToast('Хранилище браузера недоступно', 'warn', 5000);
+  if (typeof ExcelJS === 'undefined') {
+    $excelHint.className = 'backup-hint warn';
+    $excelHint.querySelector('span').textContent = 'Библиотека ExcelJS не загрузилась. Проверь интернет и перезагрузи страницу.';
   }
 })();
 </script>
