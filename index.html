@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Время → Excel</title>
+<title>Хронос — время в таблицы</title>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
   :root {
@@ -46,16 +46,120 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
-  .container { max-width: 1240px; margin: 0 auto; }
-  header { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+
+  /* Фон-декор */
+  .bg-decor {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    transition: opacity .4s;
+  }
+  .bg-decor.hidden { opacity: 0; }
+  .bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: .35;
+    will-change: transform;
+  }
+  .bg-orb.o1 { width: 420px; height: 420px; background: var(--indigo-500); top: -120px; left: -120px; animation: floatOrb1 18s ease-in-out infinite; }
+  .bg-orb.o2 { width: 500px; height: 500px; background: var(--mint-500); bottom: -180px; right: -160px; animation: floatOrb2 22s ease-in-out infinite; }
+  .bg-orb.o3 { width: 320px; height: 320px; background: var(--amber-500); top: 45%; left: 55%; opacity: .22; animation: floatOrb3 26s ease-in-out infinite; }
+  html[data-theme="dark"] .bg-orb { opacity: .22; }
+  html[data-theme="dark"] .bg-orb.o3 { opacity: .14; }
+  @keyframes floatOrb1 { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(90px, 70px) scale(1.15); } }
+  @keyframes floatOrb2 { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-110px, -90px) scale(1.1); } }
+  @keyframes floatOrb3 { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-70px, 50px) scale(.9); } }
+
+  @keyframes blockIn {
+    0%   { opacity: 0; transform: scale(.965) translateY(6px); filter: blur(2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes shine {
+    0%, 72% { transform: translateX(-130%); }
+    88% { transform: translateX(130%); }
+    100% { transform: translateX(130%); }
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(40px) scale(.96); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+  }
+
+  /* ─── Мягкая анимация красной точки ─── */
+  @keyframes dotBreath {
+    0%, 100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(255,77,79,.55); }
+    50%      { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(255,77,79,0); }
+  }
+  @keyframes dotRipple {
+    0%   { transform: scale(.85); opacity: .75; }
+    70%  { transform: scale(2.6); opacity: 0;   }
+    100% { transform: scale(2.6); opacity: 0;   }
+  }
+
+  /* ─── Пружинный pop для сегментов ─── */
+  @keyframes segPop {
+    0%   { transform: scale(.9);  }
+    55%  { transform: scale(1.06);}
+    100% { transform: scale(1);   }
+  }
+  @keyframes segGlow {
+    0%   { box-shadow: var(--shadow-sm), 0 0 0 0   rgba(99,102,241,.45); }
+    100% { box-shadow: var(--shadow-sm), 0 0 0 8px rgba(99,102,241,0);   }
+  }
+
+  /* ─── Ripple на кнопках ─── */
+  @keyframes rippleAnim {
+    0%   { transform: scale(0);   opacity: .28; }
+    100% { transform: scale(4.2); opacity: 0;   }
+  }
+
+  /* ─── Каскадное появление строк preview ─── */
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+
+  /* ─── Волновая подсветка ячеек Excel ─── */
+  @keyframes cellFillWave {
+    0%   { background: var(--cell-fill-hi); transform: scale(.92); }
+    60%  { background: var(--cell-fill-hi); transform: scale(1);   }
+    100% { background: var(--cell-fill);    transform: scale(1);   }
+  }
+
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .container { max-width: 1240px; margin: 0 auto; position: relative; z-index: 1; }
+
+  header {
+    display: flex; justify-content: space-between; align-items: center; gap: 20px;
+    margin-bottom: 20px; flex-wrap: wrap;
+    animation: blockIn .55s cubic-bezier(.2,.9,.3,1) both;
+  }
   .brand { display: flex; align-items: center; gap: 14px; }
   .brand-icon {
     width: 46px; height: 46px; border-radius: 13px;
     background: linear-gradient(135deg, var(--indigo-500), var(--mint-500));
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--glow); color: #fff; flex-shrink: 0;
+    position: relative; overflow: hidden;
+    transition: transform .3s cubic-bezier(.2,.9,.3,1);
   }
-  .brand-icon svg { width: 24px; height: 24px; }
+  .brand-icon::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+    transform: translateX(-130%);
+    animation: shine 5s ease-in-out infinite;
+  }
+  .brand:hover .brand-icon { transform: rotate(-6deg) scale(1.05); }
+  .brand-icon svg { width: 24px; height: 24px; position: relative; z-index: 1; }
   .brand h1 { font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
   .brand .sub { font-size: 12.5px; color: var(--text-3); font-weight: 500; }
   .header-actions { display: flex; gap: 8px; align-items: center; }
@@ -65,22 +169,33 @@
     color: var(--text-2); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow-sm); flex-shrink: 0; position: relative;
-    transition: border-color .2s, color .2s;
+    transition: border-color .2s, color .2s, transform .25s cubic-bezier(.2,.9,.3,1), box-shadow .25s;
   }
-  .icon-btn:hover { border-color: var(--indigo-500); color: var(--indigo-500); }
-  .icon-btn svg { width: 18px; height: 18px; position: absolute; }
-  .icon-btn .sun { opacity: 1; }
-  .icon-btn .moon { opacity: 0; }
-  html[data-theme="dark"] .icon-btn .sun { opacity: 0; }
-  html[data-theme="dark"] .icon-btn .moon { opacity: 1; }
-  .quick-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .icon-btn:hover { border-color: var(--indigo-500); color: var(--indigo-500); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .icon-btn:active { transform: translateY(0) scale(.94); }
+  .icon-btn svg { width: 18px; height: 18px; position: absolute; transition: opacity .3s, transform .5s cubic-bezier(.3,1.4,.5,1); }
+  .icon-btn .sun { opacity: 1; transform: rotate(0); }
+  .icon-btn .moon { opacity: 0; transform: rotate(-90deg); }
+  html[data-theme="dark"] .icon-btn .sun { opacity: 0; transform: rotate(90deg); }
+  html[data-theme="dark"] .icon-btn .moon { opacity: 1; transform: rotate(0); }
+  #settingsToggle svg { transform: none; }
+  #settingsToggle:hover svg { transform: rotate(60deg); }
+  #settingsToggle svg { transition: transform .5s cubic-bezier(.3,1.4,.5,1); }
+
+  .quick-stats {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    animation: blockIn .55s cubic-bezier(.2,.9,.3,1) .06s both;
+  }
+  .quick-stats.hidden { display: none; }
   .quick-chip {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 8px 14px; border-radius: 10px;
     background: var(--surface); border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
     font-size: 12.5px; color: var(--text-2); font-weight: 500;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
   }
+  .quick-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--border-2); }
   .quick-chip svg { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; }
   .quick-chip b { color: var(--text); font-weight: 700; font-size: 14px; margin-left: 2px; font-variant-numeric: tabular-nums; }
   .quick-chip.accent-indigo b { color: var(--indigo-600); }
@@ -88,11 +203,48 @@
   .quick-chip.accent-mint b { color: var(--mint-600); }
   .quick-chip.accent-amber b { color: var(--amber-500); }
   .quick-chip.hidden { display: none; }
+
   .card {
+    position: relative;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 18px; padding: 20px;
     box-shadow: var(--shadow-md); margin-bottom: 16px;
+    animation: blockIn .6s cubic-bezier(.2,.9,.3,1) both;
+    transition: transform .3s cubic-bezier(.2,.9,.3,1), box-shadow .3s, border-color .3s;
   }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 19px;
+    padding: 1px;
+    background: linear-gradient(135deg,
+      rgba(99,102,241,.75) 0%,
+      rgba(16,185,129,.75) 50%,
+      rgba(14,165,233,.75) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity .35s cubic-bezier(.2,.9,.3,1);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .card.hidden { display: none; }
+  .container > .card:nth-of-type(1) { animation-delay: .10s; }
+  .container > .card:nth-of-type(2) { animation-delay: .17s; }
+  .container > .card:nth-of-type(3) { animation-delay: .24s; }
+  .container > .card:nth-of-type(4) { animation-delay: .31s; }
+  .container > .card:nth-of-type(5) { animation-delay: .38s; }
+  @media (hover: hover) {
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+      border-color: transparent;
+    }
+    .card:hover::before { opacity: 1; }
+  }
+
   .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
   .step-badge {
     width: 26px; height: 26px; border-radius: 8px;
@@ -124,11 +276,14 @@
     font-size: 13px; line-height: 1.65; color: var(--text);
     background: var(--surface-2); border: 1.5px solid var(--border);
     border-radius: 12px; resize: vertical; outline: none;
-    transition: border-color .2s, box-shadow .2s, background .2s;
+    transition: border-color .25s, box-shadow .25s, background .25s;
   }
   textarea::placeholder { color: var(--text-4); }
   textarea:hover { border-color: var(--border-2); }
-  textarea:focus { border-color: var(--indigo-500); background: var(--surface); box-shadow: 0 0 0 4px var(--accent-soft); }
+  textarea:focus {
+    border-color: var(--indigo-500); background: var(--surface);
+    box-shadow: 0 0 0 4px var(--accent-soft), 0 0 24px rgba(99,102,241,.14);
+  }
   #input { height: 200px; }
   #input.collapsed { height: 0; padding: 0; border: 0; margin: 0; opacity: 0; pointer-events: none; }
   #output { height: 160px; background: var(--surface-3); color: var(--text-2); }
@@ -140,11 +295,15 @@
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     padding: 9px 14px; font-size: 12.5px; font-weight: 600;
     font-family: inherit; border: 0; border-radius: 9px; cursor: pointer;
-    transition: background .18s, color .18s, box-shadow .18s, border-color .18s;
+    transition: background .18s, color .18s, box-shadow .25s, border-color .18s, transform .18s cubic-bezier(.2,.9,.3,1);
     white-space: nowrap; letter-spacing: -.005em; line-height: 1; color: inherit;
+    position: relative; overflow: hidden;
   }
-  .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .btn svg { width: 14px; height: 14px; flex-shrink: 0; transition: transform .25s cubic-bezier(.2,.9,.3,1); }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn:not(:disabled):hover { transform: translateY(-1px); }
+  .btn:not(:disabled):active { transform: translateY(0) scale(.97); }
+  .btn:not(:disabled):hover svg { transform: scale(1.1); }
   .btn-ghost { background: var(--surface-3); color: var(--text-2); }
   .btn-ghost:hover:not(:disabled) { background: var(--border); color: var(--text); }
   .btn-danger { background: rgba(244,63,94,.1); color: var(--rose-500); }
@@ -155,14 +314,27 @@
   .btn-icon.active { background: var(--indigo-500); color: #fff; }
   .btn-icon.active svg { transform: rotate(180deg); }
   .btn-primary { background: linear-gradient(135deg, var(--indigo-500), var(--indigo-700)); color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,.3); }
-  .btn-primary:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(99,102,241,.5); }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 10px 26px rgba(99,102,241,.55); }
   .btn-success { background: linear-gradient(135deg, var(--mint-500), var(--mint-600)); color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,.3); }
-  .btn-success:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(16,185,129,.5); }
+  .btn-success:hover:not(:disabled) { box-shadow: 0 10px 26px rgba(16,185,129,.55); }
   .btn-success.copied { background: linear-gradient(135deg, #059669, #047857); }
   .btn-excel { background: linear-gradient(135deg, #107c41, #0a5a2f); color: #fff; box-shadow: 0 4px 12px rgba(16,124,65,.35); }
-  .btn-excel:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(16,124,65,.55); }
+  .btn-excel:hover:not(:disabled) { box-shadow: 0 10px 26px rgba(16,124,65,.6); }
   .btn-large { width: 100%; padding: 15px 24px; font-size: 14.5px; border-radius: 12px; justify-content: center; }
   .btn-large svg { width: 17px; height: 17px; }
+
+  /* Ripple */
+  .btn .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0;
+    transform: scale(0);
+    animation: rippleAnim .68s cubic-bezier(.2,.9,.3,1);
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+
   .preset-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .preset-row + .preset-row { margin-top: 8px; }
   .preset-select, .preset-input {
@@ -171,7 +343,7 @@
     background: var(--surface-2); border: 1.5px solid var(--border);
     border-radius: 10px; color: var(--text); outline: none;
     appearance: none; -webkit-appearance: none;
-    transition: border-color .2s, box-shadow .2s, background .2s;
+    transition: border-color .2s, box-shadow .25s, background .2s, transform .2s;
   }
   .preset-select {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
@@ -192,16 +364,57 @@
   .backup-hint.warn svg { color: var(--rose-500); }
   .backup-hint.ok { border-color: rgba(16,185,129,.4); color: var(--mint-600); }
   .backup-hint.ok svg { color: var(--mint-500); }
-  .segmented { display: inline-flex; background: var(--surface-3); border-radius: 10px; padding: 3px; gap: 2px; border: 1px solid var(--border); }
+
+  /* SEGMENTED */
+  .segmented {
+    display: inline-flex;
+    background: var(--surface-3);
+    border-radius: 10px;
+    padding: 3px; gap: 2px;
+    border: 1px solid var(--border);
+    transition: box-shadow .3s, border-color .3s;
+  }
+  .segmented:hover { border-color: var(--border-2); }
   .segmented label { position: relative; cursor: pointer; user-select: none; }
   .segmented input { position: absolute; opacity: 0; pointer-events: none; }
   .segmented span {
     display: block; padding: 6px 12px; font-size: 12px; font-weight: 500;
     color: var(--text-3); border-radius: 7px;
-    transition: background .18s, color .18s; white-space: nowrap;
+    white-space: nowrap;
+    will-change: transform, background, color;
+    transition:
+      background .28s cubic-bezier(.2,.9,.3,1),
+      color .28s cubic-bezier(.2,.9,.3,1),
+      transform .28s cubic-bezier(.2,.9,.3,1),
+      box-shadow .28s cubic-bezier(.2,.9,.3,1),
+      font-weight .2s;
   }
-  .segmented label:hover span { color: var(--text-2); }
-  .segmented input:checked + span { background: var(--surface); color: var(--indigo-600); font-weight: 600; box-shadow: var(--shadow-sm); }
+  .segmented label:not(:has(input:checked)):hover span {
+    background: var(--surface);
+    color: var(--text-2);
+    transform: translateY(-1.5px);
+    box-shadow: var(--shadow-sm);
+  }
+  .segmented label:active span {
+    transform: scale(.94);
+    transition-duration: .12s;
+  }
+  .segmented input:checked + span {
+    background: var(--surface);
+    color: var(--indigo-600);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm), 0 0 0 2px rgba(99,102,241,.1);
+    animation: segPop .42s cubic-bezier(.34,1.56,.64,1), segGlow .7s ease-out;
+  }
+  html[data-theme="dark"] .segmented input:checked + span {
+    background: var(--surface-2);
+    color: #a5b4fc;
+    box-shadow: var(--shadow-sm), 0 0 0 2px rgba(99,102,241,.22);
+  }
+  .segmented input:focus-visible + span {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
   .preview-wrap { margin-top: 12px; max-height: 460px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
   .preview-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
   .preview-wrap::-webkit-scrollbar-track { background: transparent; }
@@ -215,6 +428,10 @@
   }
   table.preview th:last-child, table.preview td:last-child { border-right: 0; }
   table.preview tbody tr:last-child td { border-bottom: 0; }
+  table.preview tbody tr {
+    animation: rowIn .42s cubic-bezier(.2,.9,.3,1) both;
+    will-change: opacity, transform;
+  }
   table.preview thead th {
     position: sticky; top: 0; z-index: 2;
     background: linear-gradient(180deg, var(--surface-2), var(--surface-3));
@@ -317,12 +534,26 @@
     background: var(--surface-2);
   }
   table.excel-grid thead .row-num { z-index: 3; }
-  table.excel-grid td.cell-nick { background: rgba(16,185,129,.15) !important; color: var(--mint-600); font-weight: 700; }
-  table.excel-grid td.cell-date { background: rgba(14,165,233,.15) !important; color: var(--sky-500); font-weight: 700; }
-  table.excel-grid td.cell-will { background: rgba(99,102,241,.15) !important; color: var(--indigo-600); font-weight: 700; }
+  table.excel-grid td.cell-nick { background: rgba(16,185,129,.15); color: var(--mint-600); font-weight: 700; }
+  table.excel-grid td.cell-date { background: rgba(14,165,233,.15); color: var(--sky-500); font-weight: 700; }
+  table.excel-grid td.cell-divider { background: rgba(148,163,184,.15); color: var(--text-4); font-style: italic; font-weight: 500; }
+  table.excel-grid td.cell-will {
+    --cell-fill: rgba(99,102,241,.15);
+    --cell-fill-hi: rgba(99,102,241,.5);
+    background: var(--cell-fill);
+    color: var(--indigo-600);
+    font-weight: 700;
+    animation: cellFillWave .62s cubic-bezier(.2,.9,.3,1) both;
+    will-change: background, transform;
+  }
   html[data-theme="dark"] table.excel-grid td.cell-nick { color: #6ee7b7; }
   html[data-theme="dark"] table.excel-grid td.cell-date { color: #7dd3fc; }
-  html[data-theme="dark"] table.excel-grid td.cell-will { color: #a5b4fc; background: rgba(99,102,241,.25) !important; }
+  html[data-theme="dark"] table.excel-grid td.cell-will {
+    --cell-fill: rgba(99,102,241,.28);
+    --cell-fill-hi: rgba(99,102,241,.6);
+    color: #a5b4fc;
+  }
+  html[data-theme="dark"] table.excel-grid td.cell-divider { color: #94a3b8; }
   .empty-state {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; text-align: center;
@@ -353,6 +584,7 @@
     font-size: 13px; font-weight: 500; color: var(--text);
     pointer-events: auto;
     min-width: 240px; max-width: 520px;
+    animation: toastIn .35s cubic-bezier(.2,.9,.3,1) both;
   }
   .toast svg { width: 18px; height: 18px; flex-shrink: 0; }
   .toast span { word-break: break-word; line-height: 1.5; }
@@ -371,7 +603,231 @@
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 10.5px; color: var(--text-2); font-weight: 600;
     line-height: 1.5;
+    transition: transform .15s;
   }
+  .kh:hover kbd { transform: translateY(-1px); }
+
+  /* НАСТРОЙКИ */
+  .settings-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(15,23,42,.42);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    animation: overlayIn .25s ease-out;
+  }
+  .settings-overlay.open { display: block; }
+  html[data-theme="dark"] .settings-overlay { background: rgba(0,0,0,.55); }
+
+  .settings-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 301;
+    width: 380px; max-width: 100vw;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    box-shadow: -20px 0 60px rgba(15,23,42,.18);
+    display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform .35s cubic-bezier(.2,.9,.3,1);
+  }
+  .settings-panel.open { transform: translateX(0); }
+  html[data-theme="dark"] .settings-panel { box-shadow: -20px 0 60px rgba(0,0,0,.6); }
+
+  .settings-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 20px 22px; border-bottom: 1px solid var(--border);
+  }
+  .settings-head h3 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .settings-head .sub { font-size: 11.5px; color: var(--text-3); font-weight: 500; }
+  .settings-head .spacer { flex: 1; }
+
+  .settings-body {
+    flex: 1; overflow-y: auto; padding: 18px 22px 22px;
+  }
+  .settings-body::-webkit-scrollbar { width: 8px; }
+  .settings-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 8px; border: 2px solid var(--surface); }
+
+  .settings-section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-4);
+    margin: 10px 0 10px;
+  }
+  .settings-section-title:first-child { margin-top: 0; }
+
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; padding: 11px 12px; border-radius: 11px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    margin-bottom: 8px;
+    transition: background .18s, border-color .18s;
+  }
+  .settings-row:hover { background: var(--surface-3); border-color: var(--border-2); }
+  .settings-row .label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .settings-row .desc { font-size: 11.5px; color: var(--text-3); margin-top: 2px; line-height: 1.4; }
+  .settings-row .info { min-width: 0; flex: 1; }
+
+  .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .switch .track {
+    position: absolute; inset: 0;
+    background: var(--border-2);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .25s;
+  }
+  .switch .track::before {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(15,23,42,.2);
+    transition: transform .25s cubic-bezier(.2,.9,.3,1);
+  }
+  .switch input:checked + .track {
+    background: linear-gradient(135deg, var(--indigo-500), var(--indigo-700));
+  }
+  .switch input:checked + .track::before { transform: translateX(18px); }
+  .switch input:focus-visible + .track { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .settings-footer {
+    padding: 14px 22px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px;
+  }
+
+  /* ПОДВАЛ */
+  .app-footer {
+    margin-top: 26px;
+    padding: 0 0 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    animation: blockIn .6s cubic-bezier(.2,.9,.3,1) .42s both;
+  }
+  .bug-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    width: 100%;
+    max-width: 620px;
+    border-radius: 18px;
+    text-decoration: none;
+    color: #fff;
+    background: linear-gradient(135deg, #0077ff 0%, #0047b3 100%);
+    box-shadow: 0 10px 30px rgba(0, 119, 255, .32), 0 2px 6px rgba(0, 71, 179, .2);
+    border: 1px solid rgba(255,255,255,.15);
+    position: relative;
+    overflow: hidden;
+    transition: transform .35s cubic-bezier(.2,.9,.3,1), box-shadow .35s;
+  }
+  .bug-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.28) 50%, transparent 65%);
+    transform: translateX(-120%);
+    transition: transform 1s cubic-bezier(.2,.9,.3,1);
+    pointer-events: none;
+  }
+  .bug-card:hover::before { transform: translateX(120%); }
+  .bug-card:hover {
+    transform: translateY(-4px) scale(1.008);
+    box-shadow: 0 20px 44px rgba(0, 119, 255, .5), 0 4px 12px rgba(0, 71, 179, .3);
+  }
+  .bug-card:active { transform: translateY(-2px) scale(1.002); }
+
+  .bug-icon-wrap {
+    position: relative;
+    width: 54px; height: 54px;
+    border-radius: 15px;
+    background: rgba(255,255,255,.2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,.28);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: transform .35s cubic-bezier(.2,.9,.3,1);
+  }
+  .bug-card:hover .bug-icon-wrap { transform: rotate(-8deg) scale(1.08); }
+  .bug-vk-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    position: relative; z-index: 1;
+    object-fit: contain;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    display: block;
+  }
+  .bug-icon-dot {
+    position: absolute;
+    top: -3px; right: -3px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #ff4d4f;
+    border: 2px solid #fff;
+    z-index: 2;
+    animation: dotBreath 2.8s cubic-bezier(.45,0,.55,1) infinite;
+    will-change: transform, box-shadow;
+  }
+  .bug-icon-dot::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    background: #ff4d4f;
+    z-index: -1;
+    animation: dotRipple 2.8s cubic-bezier(.22,.61,.36,1) infinite;
+    will-change: transform, opacity;
+  }
+
+  .bug-text {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .bug-title {
+    font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bug-emoji { font-size: 16px; }
+  .bug-sub { font-size: 12.5px; opacity: .9; font-weight: 500; }
+  .bug-sub b { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+  .bug-cta {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.32);
+    font-size: 12.5px; font-weight: 700;
+    letter-spacing: .03em;
+    transition: background .25s, transform .25s;
+    flex-shrink: 0;
+  }
+  .bug-card:hover .bug-cta {
+    background: rgba(255,255,255,.34);
+    transform: translateX(4px);
+  }
+  .bug-cta svg { width: 14px; height: 14px; transition: transform .25s; }
+  .bug-card:hover .bug-cta svg { transform: translateX(2px); }
+
+  .footer-note {
+    font-size: 12px;
+    color: var(--text-4);
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 500;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .footer-note .dot { opacity: .5; }
+  .footer-note .ver {
+    padding: 2px 7px;
+    background: var(--surface-3);
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-3);
+  }
+
   @media (max-width: 720px) {
     body { padding: 20px 12px 40px; font-size: 13.5px; }
     .brand-icon { width: 40px; height: 40px; }
@@ -387,28 +843,55 @@
     .toast-container { top: 12px; right: 12px; left: 12px; align-items: stretch; }
     .toast { min-width: 0; }
     .preset-select, .preset-input { flex-basis: 100%; }
+    .bg-orb { filter: blur(50px); }
+    .bg-orb.o1 { width: 260px; height: 260px; }
+    .bg-orb.o2 { width: 320px; height: 320px; }
+    .bg-orb.o3 { width: 200px; height: 200px; }
+    .settings-panel { width: 100%; }
+  }
+  @media (max-width: 520px) {
+    .bug-card { flex-direction: column; text-align: center; gap: 12px; padding: 20px 16px; }
+    .bug-text { align-items: center; }
+    .bug-card:hover .bug-cta { transform: translateX(0); }
+    .bug-card:hover .bug-icon-wrap { transform: rotate(-4deg) scale(1.05); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   }
 </style>
 </head>
 <body>
+
+<div class="bg-decor" id="bgDecor" aria-hidden="true">
+  <div class="bg-orb o1"></div>
+  <div class="bg-orb o2"></div>
+  <div class="bg-orb o3"></div>
+</div>
+
 <div class="container">
 
   <header>
     <div class="brand">
       <div class="brand-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="8" y1="13" x2="16" y2="13"/>
-          <line x1="8" y1="17" x2="13" y2="17"/>
+          <path d="M6 2h12"/>
+          <path d="M6 22h12"/>
+          <path d="M6 2v4c0 3 3 6 6 6s6-3 6-6V2"/>
+          <path d="M6 22v-4c0-3 3-6 6-6s6 3 6 6v4"/>
         </svg>
       </div>
       <div>
-        <h1>Время → Excel</h1>
-        <div class="sub">Вставь данные — получи готовый TSV, CSV или обновлённый .xlsx</div>
+        <h1>Хронос</h1>
+        <div class="sub">Время из отчётов — в аккуратные таблицы Excel</div>
       </div>
     </div>
     <div class="header-actions">
+      <button class="icon-btn" id="settingsToggle" title="Настройки" aria-label="Настройки">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
       <button class="icon-btn" id="themeToggle" title="Сменить тему" aria-label="Сменить тему">
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="4"/>
@@ -428,23 +911,23 @@
     </div>
     <div class="quick-chip accent-indigo hidden" id="chipNicks">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-      <span>Ников: <b id="qsNicks">—</b></span>
+      <span>Ников: <b id="qsNicks" data-value="0">—</b></span>
     </div>
     <div class="quick-chip accent-sky hidden" id="chipDates">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span>Дат: <b id="qsDates">—</b></span>
+      <span>Дат: <b id="qsDates" data-value="0">—</b></span>
     </div>
     <div class="quick-chip accent-mint hidden" id="chipCells">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      <span>Записей: <b id="qsCells">—</b></span>
+      <span>Записей: <b id="qsCells" data-value="0">—</b></span>
     </div>
     <div class="quick-chip accent-amber hidden" id="chipEmpty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
-      <span>Пустых: <b id="qsEmpty">—</b></span>
+      <span>Пустых: <b id="qsEmpty" data-value="0">—</b></span>
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="cardInput">
     <div class="card-head">
       <span class="step-badge">1</span>
       <h2>Данные отчёта</h2>
@@ -492,7 +975,7 @@ Egor_Belov
     </div>
   </div>
 
-  <div class="card" id="excelCard">
+  <div class="card" id="cardExcel">
     <div class="card-head">
       <span class="step-badge xlsx">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -539,34 +1022,55 @@ Egor_Belov
         <span id="excelErrorText">Не удалось распознать структуру.</span>
       </div>
     </div>
-    <div class="excel-row" id="excelActions" style="display:none; margin-top:12px;">
-      <button class="btn btn-success btn-large" id="excelFill">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 11l3 3L22 4"/>
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-        </svg>
-        <span id="excelFillText">Заполнить временами</span>
-      </button>
-      <button class="btn btn-primary btn-large" id="excelDownload" disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Скачать обновлённый .xlsx
-      </button>
+
+    <div id="excelActions" style="display:none; margin-top:12px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-success btn-large" id="excelFill" style="flex:1; min-width:200px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          <span id="excelFillText">Построить блок для вставки</span>
+        </button>
+        <button class="btn btn-primary btn-large" id="excelCopyBlock" style="flex:1; min-width:200px;" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          <span id="excelCopyBlockText">Скопировать блок</span>
+        </button>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">
+            Блок для вставки (только ники с данными)
+          </span>
+          <span class="format-badge ok" id="excelBlockBadge" style="display:none;"></span>
+        </div>
+        <textarea id="excelBlockOut" readonly spellcheck="false" style="height:220px; background:var(--surface-3); font-size:12px; line-height:1.5;" placeholder="Нажми «Построить блок для вставки» — здесь появится блок только для тех ников, у которых есть данные в отчёте."></textarea>
+        <div class="backup-hint" style="margin-top:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Блок охватывает только тех ников из шаблона, <b>у которых есть данные в отчёте</b>. Ники, которых нет в отчёте, и строки-разделители внутри этого диапазона — пустые строки, чтобы позиции совпали. Выдели ячейку в левом верхнем углу блока и нажми <kbd>Ctrl</kbd>+<kbd>V</kbd>.</span>
+        </div>
+      </div>
     </div>
+
     <div class="backup-hint" id="excelHint">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/>
         <line x1="12" y1="8" x2="12" y2="12"/>
         <line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
-      <span>Загрузи Excel-шаблон с никами и датами. После загрузки текстового отчёта в превью покажется, что будет вставлено (фиолетовые ячейки). Нажми «Заполнить временами» → «Скачать».</span>
+      <span>Загрузи Excel-шаблон с никами и датами. После загрузки текстового отчёта нажми «Построить блок для вставки» — получишь блок только для ников с данными. Скопируй и вставь с указанной ячейки.</span>
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="cardPresets">
     <div class="card-head">
       <span class="step-badge star">
         <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -597,7 +1101,7 @@ Egor_Belov
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="cardPreview">
     <div class="card-head">
       <span class="step-badge">2</span>
       <h2>Предпросмотр текста</h2>
@@ -615,7 +1119,7 @@ Egor_Belov
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="cardOutput">
     <div class="card-head">
       <span class="step-badge">3</span>
       <h2>Что попадёт в буфер <span id="outputHint" style="font-weight:500;color:var(--text-3);font-size:12.5px;margin-left:4px;"></span></h2>
@@ -640,18 +1144,160 @@ Egor_Belov
     </div>
   </div>
 
+  <footer class="app-footer" id="appFooter">
+    <a href="https://vk.ru/errorone404" target="_blank" rel="noopener noreferrer" class="bug-card">
+      <div class="bug-icon-wrap">
+        <span class="bug-icon-dot"></span>
+        <img class="bug-vk-icon" src="https://upload.wikimedia.org/wikipedia/commons/9/9a/VK_Logo.png" alt="VK" referrerpolicy="no-referrer">
+      </div>
+      <div class="bug-text">
+        <div class="bug-title"><span class="bug-emoji">🐛</span> Нашли баг или есть идея?</div>
+        <div class="bug-sub">Пишите, если что-то сломалось, работает криво или есть идея — обсудим</div>
+      </div>
+      <div class="bug-cta">
+        <span>VK</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </div>
+    </a>
+    <div class="footer-note">
+      <span>Хронос</span>
+      <span class="dot">•</span>
+      <span>инструмент для удобной работы с отчётами</span>
+      <span class="dot">•</span>
+      <span class="ver">v2.4</span>
+    </div>
+  </footer>
+
 </div>
+
+<div class="settings-overlay" id="settingsOverlay"></div>
+<aside class="settings-panel" id="settingsPanel" aria-label="Настройки">
+  <div class="settings-head">
+    <div>
+      <h3>Настройки</h3>
+      <div class="sub">Скрывай ненужные блоки</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="settingsClose" title="Закрыть" aria-label="Закрыть">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="settings-body">
+    <div class="settings-section-title">Интерфейс</div>
+
+    <div class="settings-row">
+      <div class="info">
+        <div class="label">Быстрые чипы</div>
+        <div class="desc">Плашки с числом ников, дат и записей</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="setQuickStats">
+        <span class="track"></span>
+      </label>
+    </div>
+
+    <div class="settings-row">
+      <div class="info">
+        <div class="label">Excel-шаблон</div>
+        <div class="desc">Блок загрузки .xlsx и построения блока для вставки</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="setExcel">
+        <span class="track"></span>
+      </label>
+    </div>
+
+    <div class="settings-row">
+      <div class="info">
+        <div class="label">Пресеты</div>
+        <div class="desc">Блок сохранённых пресетов и бэкапов</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="setPresets">
+        <span class="track"></span>
+      </label>
+    </div>
+
+    <div class="settings-row">
+      <div class="info">
+        <div class="label">Предпросмотр текста</div>
+        <div class="desc">Таблица с временами из отчёта</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="setPreview">
+        <span class="track"></span>
+      </label>
+    </div>
+
+    <div class="settings-row">
+      <div class="info">
+        <div class="label">Буфер обмена</div>
+        <div class="desc">Готовый TSV/CSV для копирования</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="setOutput">
+        <span class="track"></span>
+      </label>
+    </div>
+
+    <div class="settings-section-title">Оформление</div>
+
+    <div class="settings-row">
+      <div class="info">
+        <div class="label">Фоновые орбы</div>
+        <div class="desc">Цветные пятна в фоне страницы</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="setOrbs">
+        <span class="track"></span>
+      </label>
+    </div>
+  </div>
+  <div class="settings-footer">
+    <button class="btn btn-ghost" id="settingsReset" style="flex:1;">Сбросить всё</button>
+  </div>
+</aside>
 
 <div class="toast-container" id="toasts"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  STORAGE / THEME
+//  STORAGE / THEME / SETTINGS
 // ═══════════════════════════════════════════════════════════════
 function isStorageAvailable() { try { const k='__t__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; } catch(e) { return false; } }
 const STORAGE_OK = isStorageAvailable();
 
 const THEME_KEY = 'excel-time-helper-theme';
+const SETTINGS_KEY = 'excel-time-helper-settings-v1';
+
+const DEFAULT_SETTINGS = {
+  quickStats: true,
+  excel: true,
+  presets: true,
+  preview: true,
+  output: true,
+  orbs: true,
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_SETTINGS, ...parsed };
+  } catch (e) { return { ...DEFAULT_SETTINGS }; }
+}
+function saveSettings(obj) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(obj)); } catch (e) {}
+}
+let SETTINGS = loadSettings();
+
 const $themeToggle = document.getElementById('themeToggle');
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -665,6 +1311,63 @@ function applyTheme(theme) {
 $themeToggle.addEventListener('click', () => {
   const cur = document.documentElement.getAttribute('data-theme');
   applyTheme(cur === 'dark' ? 'light' : 'dark');
+});
+
+const $settingsPanel = document.getElementById('settingsPanel');
+const $settingsOverlay = document.getElementById('settingsOverlay');
+const $settingsToggle = document.getElementById('settingsToggle');
+const $settingsClose = document.getElementById('settingsClose');
+const $settingsReset = document.getElementById('settingsReset');
+
+function applySettings() {
+  document.getElementById('quickStats').classList.toggle('hidden', !SETTINGS.quickStats);
+  document.getElementById('cardExcel').classList.toggle('hidden', !SETTINGS.excel);
+  document.getElementById('cardPresets').classList.toggle('hidden', !SETTINGS.presets);
+  document.getElementById('cardPreview').classList.toggle('hidden', !SETTINGS.preview);
+  document.getElementById('cardOutput').classList.toggle('hidden', !SETTINGS.output);
+  document.getElementById('bgDecor').classList.toggle('hidden', !SETTINGS.orbs);
+
+  document.getElementById('setQuickStats').checked = SETTINGS.quickStats;
+  document.getElementById('setExcel').checked = SETTINGS.excel;
+  document.getElementById('setPresets').checked = SETTINGS.presets;
+  document.getElementById('setPreview').checked = SETTINGS.preview;
+  document.getElementById('setOutput').checked = SETTINGS.output;
+  document.getElementById('setOrbs').checked = SETTINGS.orbs;
+}
+function updateSetting(key, value) {
+  SETTINGS[key] = value;
+  saveSettings(SETTINGS);
+  applySettings();
+}
+['quickStats','excel','presets','preview','output','orbs'].forEach(key => {
+  const el = document.getElementById('set' + key.charAt(0).toUpperCase() + key.slice(1));
+  el.addEventListener('change', () => updateSetting(key, el.checked));
+});
+
+function openSettings() {
+  $settingsOverlay.classList.add('open');
+  $settingsPanel.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSettings() {
+  $settingsOverlay.classList.remove('open');
+  $settingsPanel.classList.remove('open');
+  document.body.style.overflow = '';
+}
+$settingsToggle.addEventListener('click', openSettings);
+$settingsClose.addEventListener('click', closeSettings);
+$settingsOverlay.addEventListener('click', closeSettings);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $settingsPanel.classList.contains('open')) {
+    e.stopPropagation();
+    closeSettings();
+  }
+}, true);
+$settingsReset.addEventListener('click', () => {
+  SETTINGS = { ...DEFAULT_SETTINGS };
+  saveSettings(SETTINGS);
+  applySettings();
+  showToast('Настройки сброшены', 'ok');
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -683,6 +1386,55 @@ function showToast(text, kind = 'ok', duration = 3000) {
   el.querySelector('span').textContent = text;
   $toasts.appendChild(el);
   setTimeout(() => el.remove(), duration);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RIPPLE
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn');
+  if (!btn || btn.disabled) return;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const x = (e.clientX ?? (rect.left + rect.width / 2)) - rect.left;
+  const y = (e.clientY ?? (rect.top + rect.height / 2)) - rect.top;
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  r.style.width = r.style.height = size + 'px';
+  r.style.left = (x - size / 2) + 'px';
+  r.style.top = (y - size / 2) + 'px';
+  btn.appendChild(r);
+  setTimeout(() => r.remove(), 700);
+}, { passive: true });
+
+// ═══════════════════════════════════════════════════════════════
+//  ANIMATED NUMBER
+// ═══════════════════════════════════════════════════════════════
+function animateNumber(el, to, duration = 550) {
+  const toNum = Number(to) || 0;
+  const fromNum = Number(el.dataset.value) || 0;
+  if (fromNum === toNum) {
+    el.textContent = toNum;
+    el.dataset.value = toNum;
+    return;
+  }
+  const start = performance.now();
+  function tick(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const cur = Math.round(fromNum + (toNum - fromNum) * eased);
+    el.textContent = cur;
+    if (p < 1) requestAnimationFrame(tick);
+    else {
+      el.textContent = toNum;
+      el.dataset.value = toNum;
+    }
+  }
+  requestAnimationFrame(tick);
+}
+function resetNumber(el) {
+  el.textContent = '—';
+  el.dataset.value = 0;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -707,31 +1459,22 @@ function migratePresetsOnce() {
 // ═══════════════════════════════════════════════════════════════
 const RE_TIME   = /^\d{1,2}:\d{2}(?::\d{2})?$/;
 const RE_HEADER = /^(время|дата|time|date)$/i;
-// Строгий формат ника: латиница, обязательно Nick_Name (одно или несколько «_Часть»).
-// Кириллица, пробелы, любые другие разделители — не ник.
 const RE_NICK   = /^[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z][A-Za-z0-9]*)+$/;
 
-function isNickFormat(s) {
-  return RE_NICK.test(String(s || '').trim());
-}
-
+function isNickFormat(s) { return RE_NICK.test(String(s || '').trim()); }
 function pad2(n) { return String(n).padStart(2, '0'); }
 
-// Универсальный парсер даты. Возвращает {d, mo, y} или null.
 function tryParseDate(str) {
   if (str == null) return null;
   const s = String(str).trim();
   if (!s) return null;
   let m;
-  // ISO: YYYY-MM-DD[THH:MM:SS][Z], YYYY/MM/DD
   m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[\sT]|$)/);
   if (m) return { d: m[3], mo: m[2], y: m[1] };
-  // EU: DD.MM.YY, DD.MM.YYYY, DD/MM/YY, DD/MM/YYYY
   m = s.match(/^(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{2,4}))?$/);
   if (m) return { d: m[1], mo: m[2], y: m[3] || '' };
   return null;
 }
-
 function isDate(s) { return tryParseDate(s) !== null; }
 function isTime(s) { return RE_TIME.test(String(s).trim()); }
 
@@ -739,8 +1482,6 @@ function excelSerialToDate(n) {
   const ms = Math.round((n - 25569) * 86400 * 1000);
   return new Date(ms);
 }
-
-// Доля суток → "HH:MM:SS". Используется для ячеек Excel, где время хранится как число 0..1.
 function excelFractionToTime(n) {
   let totalSecs = Math.round(Number(n) * 86400);
   totalSecs = ((totalSecs % 86400) + 86400) % 86400;
@@ -749,7 +1490,6 @@ function excelFractionToTime(n) {
   const s = totalSecs % 60;
   return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
 }
-
 function dateToObj(s) {
   const p = tryParseDate(s);
   if (!p) return new Date(0);
@@ -766,13 +1506,11 @@ function normalizeDate(s) {
   const y = p.y ? String(p.y).slice(-2).padStart(2, '0') : '';
   return y ? `${d}.${mo}.${y}` : `${d}.${mo}`;
 }
-// Для сопоставления — только ДД.ММ
 function normalizeDateForMatch(s) {
   const p = tryParseDate(s);
   if (!p) return String(s || '').trim();
   return `${String(p.d).padStart(2,'0')}.${String(p.mo).padStart(2,'0')}`;
 }
-// Для ников — trim + lowercase + подчёркивания/точки/дефисы → пробелы
 function normalizeNickForMatch(s) {
   return String(s || '')
     .trim()
@@ -784,9 +1522,14 @@ function normalizeNickForMatch(s) {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+function colLetter(n) {
+  let s = '';
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
 
 // ═══════════════════════════════════════════════════════════════
-//  PARSER (отчёта)
+//  PARSER
 // ═══════════════════════════════════════════════════════════════
 function parse(text) {
   const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean).filter(l => !RE_HEADER.test(l));
@@ -800,8 +1543,6 @@ function parse(text) {
     if (firstIsData) return { format: 'C', records: parseNickBottom(lines) };
     return { format: 'A', records: parseNickTop(lines) };
   }
-  // Формат B: сверху список ников, ниже — данные.
-  // Отфильтруем «шапку» — оставляем только валидные ники.
   const cleanNicks = leadingLines.filter(isNickFormat);
   return { format: 'B', records: parseListFirst(cleanNicks, restLines) };
 }
@@ -818,11 +1559,9 @@ function makeToken(line) {
   if (isDate(line)) return { type: 'date', value: normalizeDate(line) };
   return { type: 'time', value: line.trim() };
 }
-// Формат A: ник сверху блока. Русский текст/заголовки игнорируются.
 function parseNickTop(lines) {
   const blocks = []; let current = null;
   for (const line of lines) {
-    // Слипшийся «Ник_Фамилия7:32:15» — только если ник валиден
     const merged = line.match(/^([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z][A-Za-z0-9]*)+)(\d{1,2}:\d{2}(?::\d{2})?)$/);
     if (merged) {
       current = { nick: merged[1], tokens: [{ type: 'time', value: merged[2] }] };
@@ -839,12 +1578,9 @@ function parseNickTop(lines) {
       blocks.push(current);
       continue;
     }
-    // Не ник и не данные — заголовок секции или произвольный текст.
-    // Игнорируем: НЕ начинаем новый блок и НЕ добавляем токен.
   }
   return blocks.map(b => ({ nick: b.nick, rows: tokensToRows(b.tokens) })).filter(b => b.rows.length > 0);
 }
-// Формат C: ник снизу блока.
 function parseNickBottom(lines) {
   const blocks = []; let pending = [];
   for (const line of lines) {
@@ -854,12 +1590,10 @@ function parseNickBottom(lines) {
       blocks.push({ nick: line, rows: tokensToRows(pending) });
       pending = [];
     } else {
-      // Не ник и не данные. Если уже накопились данные — закрываем блок как «Без_ника».
       if (pending.length) {
         blocks.push({ nick: 'Без_ника', rows: tokensToRows(pending) });
         pending = [];
       }
-      // Пустой pending + не-ник: просто пропускаем.
     }
   }
   if (pending.length) blocks.push({ nick: 'Без_ника', rows: tokensToRows(pending) });
@@ -941,11 +1675,12 @@ function buildCsv(matrix, orientation) {
 function csvEscape(v) { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 
 // ═══════════════════════════════════════════════════════════════
-//  PREVIEW (текст)
+//  PREVIEW
 // ═══════════════════════════════════════════════════════════════
 function buildPreviewHtml(matrix, orientation) {
   const { dates, map } = matrix;
   const nicks = [...map.keys()];
+  const stagger = (i) => ` style="animation-delay:${Math.min(i, 20) * 22}ms"`;
   if (orientation === 'h') {
     let html = '<table class="preview"><thead><tr><th class="num-col">#</th><th class="label-col">Ник</th>';
     dates.forEach(d => { html += `<th>${escapeHtml(d)}</th>`; });
@@ -953,7 +1688,7 @@ function buildPreviewHtml(matrix, orientation) {
     let i = 0;
     for (const [nick, dm] of map) {
       i++;
-      html += `<tr><td class="num-col">${i}</td><td class="label-col" title="${escapeHtml(nick)}">${escapeHtml(nick)}</td>`;
+      html += `<tr${stagger(i - 1)}><td class="num-col">${i}</td><td class="label-col" title="${escapeHtml(nick)}">${escapeHtml(nick)}</td>`;
       dates.forEach(d => { const v = dm.get(d) || ''; html += v ? `<td>${escapeHtml(v)}</td>` : '<td class="empty">—</td>'; });
       html += `<td><button class="row-btn" data-nick="${escapeHtml(nick)}" title="Скопировать строку"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></td></tr>`;
     }
@@ -967,7 +1702,7 @@ function buildPreviewHtml(matrix, orientation) {
     let i = 0;
     for (const d of dates) {
       i++;
-      html += `<tr><td class="num-col">${i}</td><td class="label-col-wide">${escapeHtml(d)}</td>`;
+      html += `<tr${stagger(i - 1)}><td class="num-col">${i}</td><td class="label-col-wide">${escapeHtml(d)}</td>`;
       for (const nick of nicks) { const dm = map.get(nick); const v = dm.get(d) || ''; html += v ? `<td>${escapeHtml(v)}</td>` : '<td class="empty">—</td>'; }
       html += '</tr>';
     }
@@ -1178,20 +1913,34 @@ function showFormatBadge(format) {
   $formatBadge.className = 'format-badge ' + format.toLowerCase();
   $formatBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' + (labels[format] || ('Формат ' + format));
 }
+function hideAllChips() {
+  [$chipFormat, $chipNicks, $chipDates, $chipCells, $chipEmpty].forEach(el => el.classList.add('hidden'));
+}
 function updateQuickStats(matrix, format) {
-  const hide = (el) => el.classList.add('hidden');
-  const show = (el) => el.classList.remove('hidden');
-  if (!matrix) { [$chipFormat, $chipNicks, $chipDates, $chipCells, $chipEmpty].forEach(hide); return; }
+  if (!matrix) {
+    hideAllChips();
+    resetNumber(document.getElementById('qsNicks'));
+    resetNumber(document.getElementById('qsDates'));
+    resetNumber(document.getElementById('qsCells'));
+    resetNumber(document.getElementById('qsEmpty'));
+    return;
+  }
   let filled = 0, empty = 0;
   for (const dm of matrix.map.values()) for (const d of matrix.dates) { if (dm.has(d)) filled++; else empty++; }
+
   $chipFormatText.textContent = 'Формат ' + format;
-  document.getElementById('qsNicks').textContent = matrix.map.size;
-  document.getElementById('qsDates').textContent = matrix.dates.length;
-  document.getElementById('qsCells').textContent = filled;
-  document.getElementById('qsEmpty').textContent = empty;
-  show($chipFormat); show($chipNicks); show($chipDates); show($chipCells);
-  if (empty > 0) show($chipEmpty); else hide($chipEmpty);
+  animateNumber(document.getElementById('qsNicks'), matrix.map.size);
+  animateNumber(document.getElementById('qsDates'), matrix.dates.length);
+  animateNumber(document.getElementById('qsCells'), filled);
+  animateNumber(document.getElementById('qsEmpty'), empty);
+
+  $chipFormat.classList.remove('hidden');
+  $chipNicks.classList.remove('hidden');
+  $chipDates.classList.remove('hidden');
+  $chipCells.classList.remove('hidden');
+  if (empty > 0) $chipEmpty.classList.remove('hidden'); else $chipEmpty.classList.add('hidden');
 }
+
 function emptyPreviewHtml() {
   return `<div class="empty-state"><div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></div><p>Здесь появится таблица.</p><p>Значения — только время, без ников и заголовков.</p></div>`;
 }
@@ -1271,14 +2020,15 @@ function exportBackup() {
       version: 1, exportedAt: new Date().toISOString(),
       presets: loadPresets(), input: $input.value,
       orientation: getOrientation(), order: getOrder(),
-      theme: document.documentElement.getAttribute('data-theme')
+      theme: document.documentElement.getAttribute('data-theme'),
+      settings: SETTINGS,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    a.download = `excel-time-backup-${stamp}.json`;
+    a.download = `chronos-backup-${stamp}.json`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('Бэкап сохранён', 'ok');
@@ -1309,6 +2059,11 @@ async function importBackupFromFile(file) {
   if (data.orientation === 'h' || data.orientation === 'v') document.querySelector(`input[name="orientation"][value="${data.orientation}"]`).checked = true;
   if (data.order === 'asc' || data.order === 'desc') document.querySelector(`input[name="order"][value="${data.order}"]`).checked = true;
   if (data.theme === 'light' || data.theme === 'dark') applyTheme(data.theme);
+  if (data.settings && typeof data.settings === 'object') {
+    SETTINGS = { ...DEFAULT_SETTINGS, ...data.settings };
+    saveSettings(SETTINGS);
+    applySettings();
+  }
   renderPresetSelect(); updateOrderLabels(); process();
   showToast(`Импорт: ${finalPresets.length} пресетов`, 'ok');
 }
@@ -1330,7 +2085,7 @@ function process() {
   if (!raw) {
     $previewWrap.innerHTML = emptyPreviewHtml(); $output.value = '';
     updateQuickStats(null, null); showFormatBadge(null); lastMatrix = null;
-    if (excelSheet && excelStructure) renderExcelPreview();
+    if (excelStructure) renderExcelPreview();
     return;
   }
   let parsed;
@@ -1340,7 +2095,7 @@ function process() {
   if (!total) {
     $previewWrap.innerHTML = errorPreviewHtml(); $output.value = '';
     updateQuickStats(null, null); showFormatBadge(null); lastMatrix = null;
-    if (excelSheet && excelStructure) renderExcelPreview();
+    if (excelStructure) renderExcelPreview();
     return;
   }
   const matrix = buildMatrix(records, getOrder());
@@ -1349,7 +2104,7 @@ function process() {
   $output.value = buildTsvOnlyTimes(matrix, orientation);
   $previewWrap.innerHTML = buildPreviewHtml(matrix, orientation);
   updateQuickStats(matrix, format);
-  if (excelSheet && excelStructure) renderExcelPreview();
+  if (excelStructure) renderExcelPreview();
   $previewWrap.querySelectorAll('.row-btn, .copy-mini').forEach(btn => {
     btn.addEventListener('click', async () => {
       const nick = btn.getAttribute('data-nick');
@@ -1441,9 +2196,9 @@ window.addEventListener('beforeunload', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-//  ═══ EXCEL LOGIC ═══
+//  EXCEL
 // ═══════════════════════════════════════════════════════════════
-const $excelCard = document.getElementById('excelCard');
+const $excelCard = document.getElementById('cardExcel');
 const $excelLoad = document.getElementById('excelLoad');
 const $excelFile = document.getElementById('excelFile');
 const $excelClear = document.getElementById('excelClear');
@@ -1462,7 +2217,10 @@ const $excelErrorText = document.getElementById('excelErrorText');
 const $excelActions = document.getElementById('excelActions');
 const $excelFill = document.getElementById('excelFill');
 const $excelFillText = document.getElementById('excelFillText');
-const $excelDownload = document.getElementById('excelDownload');
+const $excelCopyBlock = document.getElementById('excelCopyBlock');
+const $excelCopyBlockText = document.getElementById('excelCopyBlockText');
+const $excelBlockOut = document.getElementById('excelBlockOut');
+const $excelBlockBadge = document.getElementById('excelBlockBadge');
 const $excelBadge = document.getElementById('excelBadge');
 const $excelHint = document.getElementById('excelHint');
 
@@ -1470,7 +2228,7 @@ let excelWorkbook = null;
 let excelSheet = null;
 let excelStructure = null;
 let excelFileName = '';
-let excelFilledCount = 0;
+let excelBlockTsv = '';
 
 function excelBadgeSet(kind, text) {
   $excelBadge.className = 'format-badge';
@@ -1479,56 +2237,37 @@ function excelBadgeSet(kind, text) {
   $excelBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' + text;
 }
 
-// Универсальное извлечение строки из ячейки ExcelJS.
-// ExcelJS отдаёт время как Date (с базовой датой 1899-12-30 / 1900-01-00)
-// или как долю суток 0..1. Обрабатываем оба случая → "HH:MM:SS".
 function extractCellString(rawValue) {
   if (rawValue == null) return '';
-
   if (typeof rawValue === 'string') return rawValue.trim();
-
   if (typeof rawValue === 'number') {
-    // 1) Чистое время — доля суток (0 ≤ n < 1)
-    if (rawValue >= 0 && rawValue < 1) {
-      return excelFractionToTime(rawValue);
-    }
-    // 2) Дата — serial (1..2958466 ≈ до 9999-12-31)
+    if (rawValue >= 0 && rawValue < 1) return excelFractionToTime(rawValue);
     if (rawValue >= 1 && rawValue < 2958466) {
       try {
         const d = excelSerialToDate(Math.floor(rawValue));
         return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}.${pad2(d.getUTCFullYear() % 100)}`;
-      } catch (e) { /* fallthrough */ }
+      } catch (e) {}
     }
     return String(rawValue);
   }
-
   if (rawValue instanceof Date) {
     const d = rawValue;
     const year = d.getUTCFullYear();
-    // Excel хранит «чистое время» как дату 1899-12-30 (или 1900-01-00) → считаем временем.
-    if (year <= 1900) {
-      return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
-    }
+    if (year <= 1900) return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
     return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}.${pad2(year % 100)}`;
   }
-
   if (typeof rawValue === 'object') {
-    if (rawValue.richText && Array.isArray(rawValue.richText)) {
-      return rawValue.richText.map(r => r.text || '').join('').trim();
-    }
+    if (rawValue.richText && Array.isArray(rawValue.richText)) return rawValue.richText.map(r => r.text || '').join('').trim();
     if (rawValue.formula) {
       const res = rawValue.result;
       if (res != null && !(typeof res === 'object' && res.error)) {
         const inner = extractCellString(res);
         if (inner) return inner;
       }
-      // Fallback: последний ник-литерал в строке формулы (IMPORTRANGE("…","Nick_Name") и т.п.)
       const formulaStr = String(rawValue.formula);
       const nickRe = /[""]([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z][A-Za-z0-9]*)+)[""]/g;
       const matches = [...formulaStr.matchAll(nickRe)];
-      if (matches.length) {
-        return matches[matches.length - 1][1];
-      }
+      if (matches.length) return matches[matches.length - 1][1];
       return '';
     }
     if (rawValue.text) return String(rawValue.text).trim();
@@ -1537,8 +2276,6 @@ function extractCellString(rawValue) {
   }
   return String(rawValue).trim();
 }
-
-// Классификация ячейки. Русский текст → 'text' и НЕ попадает в ники.
 function classifyValue(str) {
   if (!str) return 'empty';
   const s = String(str).trim();
@@ -1548,7 +2285,6 @@ function classifyValue(str) {
   if (isNickFormat(s)) return 'nick';
   return 'text';
 }
-
 function analyzeSheet(sheet) {
   const dataCells = [];
   sheet.eachRow({ includeEmpty: false }, (row, rowNum) => {
@@ -1561,7 +2297,6 @@ function analyzeSheet(sheet) {
       dataCells.push({ row: rowNum, col: colNum, value: str, kind });
     });
   });
-
   const datesByRow = new Map(), datesByCol = new Map();
   const nicksByRow = new Map(), nicksByCol = new Map();
   for (const c of dataCells) {
@@ -1571,14 +2306,12 @@ function analyzeSheet(sheet) {
       if (!datesByCol.has(c.col)) datesByCol.set(c.col, []);
       datesByCol.get(c.col).push(c);
     } else if (c.kind === 'nick') {
-      // ВАЖНО: только реальные ники (Nick_Name), а не любой текст.
       if (!nicksByRow.has(c.row)) nicksByRow.set(c.row, []);
       nicksByRow.get(c.row).push(c);
       if (!nicksByCol.has(c.col)) nicksByCol.set(c.col, []);
       nicksByCol.get(c.col).push(c);
     }
   }
-
   let dateHeaderRow = null, dateHeaderRowData = null;
   for (const [r, arr] of datesByRow) if (arr.length >= 2 && (!dateHeaderRowData || arr.length > dateHeaderRowData.length)) { dateHeaderRow = r; dateHeaderRowData = arr; }
   let dateHeaderCol = null, dateHeaderColData = null;
@@ -1587,11 +2320,9 @@ function analyzeSheet(sheet) {
   for (const [c, arr] of nicksByCol) if (arr.length >= 2 && (!nickHeaderColData || arr.length > nickHeaderColData.length)) { nickHeaderCol = c; nickHeaderColData = arr; }
   let nickHeaderRow = null, nickHeaderRowData = null;
   for (const [r, arr] of nicksByRow) if (arr.length >= 2 && (!nickHeaderRowData || arr.length > nickHeaderRowData.length)) { nickHeaderRow = r; nickHeaderRowData = arr; }
-
   let orientation = null;
   if (dateHeaderRow && nickHeaderCol) orientation = 'h';
   else if (dateHeaderCol && nickHeaderRow) orientation = 'v';
-
   let nickCells = [], dateCells = [];
   if (orientation === 'h') {
     nickCells = (nicksByCol.get(nickHeaderCol) || []).filter(c => c.row > dateHeaderRow);
@@ -1605,7 +2336,7 @@ function analyzeSheet(sheet) {
 }
 
 async function handleExcelUpload(file) {
-  if (typeof ExcelJS === 'undefined') { showToast('Библиотека ExcelJS не загрузилась. Проверь интернет.', 'err', 5000); return; }
+  if (typeof ExcelJS === 'undefined') { showToast('ExcelJS не загрузился. Проверь интернет.', 'err', 5000); return; }
   excelFileName = file.name;
   $excelFileName.textContent = file.name;
   $excelHint.className = 'backup-hint';
@@ -1628,16 +2359,19 @@ async function handleExcelUpload(file) {
   excelWorkbook = wb;
   excelSheet = bestSheet;
   excelStructure = bestAnalysis;
-  excelFilledCount = 0;
+  excelBlockTsv = '';
+  $excelBlockOut.value = '';
+  $excelCopyBlock.disabled = true;
+  $excelBlockBadge.style.display = 'none';
+  $excelFillText.textContent = 'Построить блок для вставки';
 
   const ok = excelStructure && excelStructure.orientation && excelStructure.score > 0;
   if (ok) {
     $excelClear.disabled = false;
     $excelInfo.style.display = 'flex';
     $excelPreviewBox.style.display = 'block';
-    $excelActions.style.display = 'flex';
+    $excelActions.style.display = 'block';
     $excelError.style.display = 'none';
-    $excelDownload.disabled = true;
     $excelSheetName.textContent = excelStructure.sheetName;
     $excelNickCount.textContent = excelStructure.nickCells.length;
     $excelDateCount.textContent = excelStructure.dateCells.length;
@@ -1645,7 +2379,7 @@ async function handleExcelUpload(file) {
     excelBadgeSet('ok', 'структура распознана');
     renderExcelPreview();
     $excelHint.className = 'backup-hint ok';
-    $excelHint.querySelector('span').textContent = 'Шаблон разобран. Загрузи текстовый отчёт и нажми «Заполнить временами».';
+    $excelHint.querySelector('span').textContent = 'Шаблон разобран. Загрузи текстовый отчёт и нажми «Построить блок для вставки».';
     showToast(`Найдено: ${excelStructure.nickCells.length} ников × ${excelStructure.dateCells.length} дат`, 'ok', 3200);
   } else {
     $excelClear.disabled = false;
@@ -1679,7 +2413,7 @@ function buildMatchMaps() {
 }
 
 function renderExcelPreview() {
-  if (!excelSheet || !excelStructure) return;
+  if (!excelStructure) return;
   const exOri = excelStructure.orientation;
   const maps = buildMatchMaps();
   if (!maps) return;
@@ -1724,7 +2458,7 @@ function renderExcelPreview() {
     if (cc < minCol) minCol = cc;
     if (cc > maxCol) maxCol = cc;
   }
-  const maxRowsShown = 30, maxColsShown = 20;
+  const maxRowsShown = 40, maxColsShown = 20;
   const rowLimit = Math.min(maxRow, minRow + maxRowsShown - 1);
   const colLimit = Math.min(maxCol, minCol + maxColsShown - 1);
 
@@ -1732,7 +2466,6 @@ function renderExcelPreview() {
   for (const c of excelStructure.nickCells) nickSet.add(`${c.row}_${c.col}`);
   for (const c of excelStructure.dateCells) dateSet.add(`${c.row}_${c.col}`);
 
-  const colLetter = (n) => { let s=''; while(n>0){const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; };
   const originalMap = new Map();
   for (const c of dataCells) originalMap.set(`${c.row}_${c.col}`, c.value);
 
@@ -1746,11 +2479,18 @@ function renderExcelPreview() {
       const key = `${r}_${cc}`;
       let v = originalMap.get(key) || '';
       let cls = '';
-      if (fillMap.has(key)) { v = fillMap.get(key); cls = 'cell-will'; }
+      let style = '';
+      if (fillMap.has(key)) {
+        v = fillMap.get(key);
+        cls = 'cell-will';
+        const d = (r - minRow) + (cc - minCol);
+        const delay = Math.min(d, 40) * 18;
+        style = ` style="animation-delay:${delay}ms"`;
+      }
       else if (nickSet.has(key) && dateSet.has(key)) { cls = 'cell-nick cell-date'; }
       else if (nickSet.has(key)) { cls = 'cell-nick'; }
       else if (dateSet.has(key)) { cls = 'cell-date'; }
-      html += `<td class="${cls}">${escapeHtml(v) || '&nbsp;'}</td>`;
+      html += `<td class="${cls}"${style}>${escapeHtml(v) || '&nbsp;'}</td>`;
     }
     html += '</tr>';
   }
@@ -1758,109 +2498,195 @@ function renderExcelPreview() {
   $excelGrid.innerHTML = html;
 }
 
-function applyTimesToExcel() {
-  if (!excelWorkbook || !excelSheet || !excelStructure || !excelStructure.orientation) { showToast('Сначала загрузи Excel-шаблон', 'warn'); return; }
-  if (!lastMatrix || !lastMatrix.map.size) { showToast('Сначала вставь данные в текстовый отчёт', 'warn'); return; }
+function buildExcelBlock() {
+  if (!excelStructure || !excelStructure.orientation) return null;
+  const { nickCells, dateCells } = excelStructure;
+  if (!nickCells.length || !dateCells.length) return null;
 
-  const exOri = excelStructure.orientation;
-  const maps = buildMatchMaps();
-  const { nickPos, datePos } = maps;
-
-  const missingNicks = [];
-  const missingDatesSet = new Set();
-  let filled = 0;
-
-  for (const [nick, dm] of lastMatrix.map) {
-    const np = nickPos.get(normalizeNickForMatch(nick));
-    if (!np) { missingNicks.push(nick); continue; }
-    for (const [date, time] of dm) {
-      if (!time) continue;
-      const dp = datePos.get(normalizeDateForMatch(date));
-      if (!dp) { missingDatesSet.add(date); continue; }
-      let targetRow, targetCol;
-      if (exOri === 'h') { targetRow = np.row; targetCol = dp.col; }
-      else { targetRow = dp.row; targetCol = np.col; }
-      if (exOri === 'h' && targetRow <= excelStructure.dateHeaderRow) continue;
-      if (exOri === 'v' && targetCol <= excelStructure.dateHeaderCol) continue;
-      const cell = excelSheet.getCell(targetRow, targetCol);
-      const writeCell = (cell.isMerged && cell.master) ? cell.master : cell;
-      writeCell.value = time;
-      filled++;
+  const nickTimeMap = new Map();
+  if (lastMatrix && lastMatrix.map.size) {
+    for (const [nick, dm] of lastMatrix.map) {
+      const nKey = normalizeNickForMatch(nick);
+      if (!nKey) continue;
+      const inner = nickTimeMap.get(nKey) || new Map();
+      for (const [date, time] of dm) {
+        if (!time) continue;
+        const dKey = normalizeDateForMatch(date);
+        if (!dKey) continue;
+        if (!inner.has(dKey)) inner.set(dKey, time);
+      }
+      nickTimeMap.set(nKey, inner);
     }
   }
 
-  excelFilledCount = filled;
-  $excelDownload.disabled = filled === 0;
+  const nickByRow = new Map();
+  const allTemplateNickKeys = new Set();
+  for (const nc of nickCells) {
+    const key = normalizeNickForMatch(nc.value);
+    if (!key) continue;
+    allTemplateNickKeys.add(key);
+    const inner = nickTimeMap.get(key);
+    const hasData = !!(inner && inner.size > 0);
+    nickByRow.set(nc.row, { key, value: nc.value, hasData });
+  }
 
-  if (filled === 0) {
-    const hints = [];
-    if (!datePos.size) hints.push('даты в шапке шаблона не распознались (в шаблоне 0 дат)');
-    if (!nickPos.size) hints.push('ники в шаблоне не распознались (в шаблоне 0 ников)');
-    if (missingNicks.length) {
-      const sample = missingNicks.slice(0, 3).join(', ');
-      hints.push(`ников из отчёта не найдено в шаблоне: ${missingNicks.length} (напр.: ${sample})`);
+  let minRow = Infinity, maxRow = -Infinity;
+  for (const [r, info] of nickByRow) {
+    if (!info.hasData) continue;
+    if (r < minRow) minRow = r;
+    if (r > maxRow) maxRow = r;
+  }
+
+  if (!isFinite(minRow)) {
+    return {
+      tsv: '', rows: 0, cols: 0, filled: 0,
+      missingNicks: [],
+      missingDateHits: 0, firstCellRef: '', firstNick: '', firstDate: '',
+      dividerRows: 0, emptyBecause: 'noNicksWithData',
+    };
+  }
+
+  let minCol = Infinity, maxCol = -Infinity;
+  for (const dc of dateCells) {
+    if (dc.col < minCol) minCol = dc.col;
+    if (dc.col > maxCol) maxCol = dc.col;
+  }
+  const dateByCol = new Map();
+  for (const dc of dateCells) {
+    const key = normalizeDateForMatch(dc.value);
+    if (!key) continue;
+    dateByCol.set(dc.col, { key, value: dc.value });
+  }
+
+  let totalFilled = 0;
+  const tsvLines = [];
+  let dividerRows = 0;
+  for (let r = minRow; r <= maxRow; r++) {
+    const nickInfo = nickByRow.get(r);
+    if (!nickInfo) dividerRows++;
+    const inner = nickInfo && nickInfo.hasData ? nickTimeMap.get(nickInfo.key) : null;
+    const line = [];
+    for (let c = minCol; c <= maxCol; c++) {
+      const dateInfo = dateByCol.get(c);
+      let v = '';
+      if (inner && dateInfo && inner.has(dateInfo.key)) {
+        v = inner.get(dateInfo.key);
+        totalFilled++;
+      }
+      line.push(v);
     }
-    if (missingDatesSet.size) {
-      const sample = [...missingDatesSet].slice(0, 3).join(', ');
-      hints.push(`дат из отчёта нет в шаблоне: ${missingDatesSet.size} (напр.: ${sample})`);
+    tsvLines.push(line.join('\t'));
+  }
+
+  const reportNicksNotMatched = [];
+  if (lastMatrix) {
+    for (const nick of lastMatrix.map.keys()) {
+      const k = normalizeNickForMatch(nick);
+      if (k && !allTemplateNickKeys.has(k)) reportNicksNotMatched.push(nick);
     }
-    const msg = hints.length
-      ? 'Заполнить не удалось: ' + hints.join('; ') + '. Ники/даты сравниваются без учёта года и регистра.'
-      : 'Заполнить не удалось: нет соответствий.';
-    showToast(msg, 'err', 9000);
-    console.warn('[excel] Не удалось заполнить.', {
-      'ников в отчёте': [...lastMatrix.map.keys()],
-      'нормализованных ников отчёта': [...lastMatrix.map.keys()].map(normalizeNickForMatch),
-      'ников в шаблоне (norm)': [...nickPos.keys()],
-      'дат в отчёте': [...new Set([...lastMatrix.map.values()].flatMap(dm => [...dm.keys()]))],
-      'нормализованных дат отчёта': [...new Set([...lastMatrix.map.values()].flatMap(dm => [...dm.keys()]))].map(normalizeDateForMatch),
-      'дат в шаблоне (norm)': [...datePos.keys()],
-      missingNicks, missingDates: [...missingDatesSet],
-    });
+  }
+
+  let missingDateHits = 0;
+  if (lastMatrix) {
+    const dateSetFromTemplate = new Set([...dateByCol.values()].map(x => x.key));
+    for (const dm of lastMatrix.map.values()) {
+      for (const d of dm.keys()) {
+        const dk = normalizeDateForMatch(d);
+        if (dk && !dateSetFromTemplate.has(dk)) missingDateHits++;
+      }
+    }
+  }
+
+  const firstNickInfo = nickByRow.get(minRow);
+  const firstDateInfo = dateByCol.get(minCol);
+  const firstCellRef = colLetter(minCol) + minRow;
+
+  return {
+    tsv: tsvLines.join('\n'),
+    rows: maxRow - minRow + 1,
+    cols: maxCol - minCol + 1,
+    filled: totalFilled,
+    missingNicks: reportNicksNotMatched,
+    missingDateHits,
+    firstCellRef,
+    firstNick: firstNickInfo ? firstNickInfo.value : '',
+    firstDate: firstDateInfo ? firstDateInfo.value : '',
+    dividerRows,
+  };
+}
+
+function applyTimesToExcel() {
+  if (!excelStructure || !excelStructure.orientation) { showToast('Сначала загрузи Excel-шаблон', 'warn'); return; }
+  if (!lastMatrix || !lastMatrix.map.size) { showToast('Сначала вставь данные в текстовый отчёт', 'warn'); return; }
+
+  const block = buildExcelBlock();
+
+  if (!block || block.emptyBecause === 'noNicksWithData' || !block.rows || !block.cols || block.filled === 0) {
+    $excelBlockOut.value = '';
+    $excelCopyBlock.disabled = true;
+    $excelBlockBadge.style.display = 'none';
+    excelBlockTsv = '';
+    $excelFillText.textContent = 'Построить блок для вставки';
+    showToast('Нет ни одного совпадения ников с шаблоном — копировать нечего', 'err', 6000);
+    $excelHint.className = 'backup-hint warn';
+    $excelHint.querySelector('span').textContent = 'Ники из отчёта не совпали с никами в шаблоне. Ники должны быть формата Nick_Name (латиница + подчёркивание).';
     return;
   }
 
+  excelBlockTsv = block.tsv;
+  $excelBlockOut.value = block.tsv;
+  $excelCopyBlock.disabled = false;
+  $excelBlockBadge.className = 'format-badge ok';
+  $excelBlockBadge.style.display = 'inline-flex';
+  $excelBlockBadge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+    `${block.rows} × ${block.cols} • значений: ${block.filled}` +
+    (block.dividerRows > 0 ? ` • разделителей: ${block.dividerRows}` : '');
+
+  $excelFillText.textContent = `Пересчитать блок (${block.rows}×${block.cols})`;
+
   renderExcelPreview();
 
-  const msg = `Заполнено ячеек: ${filled}` +
-    (missingNicks.length ? ` • ников без пары: ${missingNicks.length}` : '') +
-    (missingDatesSet.size ? ` • дат вне шаблона: ${missingDatesSet.size}` : '');
-  showToast(msg, 'ok', 4000);
-  $excelFillText.textContent = `Заполнить снова (заполнено: ${filled})`;
+  const base = `Скопировать ${block.rows} × ${block.cols} ячеек, значений: ${block.filled}` +
+    (block.dividerRows > 0 ? ` • пустых строк-разделителей: ${block.dividerRows}` : '') +
+    (block.missingNicks.length ? ` • ников не найдено: ${block.missingNicks.length}` : '') +
+    (block.missingDateHits ? ` • дат вне шаблона: ${block.missingDateHits}` : '');
+  showToast(base, 'ok', 4500);
   $excelHint.className = 'backup-hint ok';
-  $excelHint.querySelector('span').textContent = `Готово. Нажми «Скачать обновлённый .xlsx» — форматирование сохранится. Ников не найдено: ${missingNicks.length}.`;
-  excelBadgeSet('ok', `заполнено: ${filled}`);
+  $excelHint.querySelector('span').textContent =
+    `Готово. Нажми «Скопировать блок» и вставь в Excel/Sheets, выделив ячейку ${block.firstCellRef} ` +
+    `(пересечение ника «${block.firstNick}» и даты «${block.firstDate}»). Затем Ctrl+V. ` +
+    `Ники без данных в отчёте и разделители остаются нетронутыми.`;
 }
 
-async function downloadExcel() {
-  if (!excelWorkbook) { showToast('Нечего скачивать', 'warn'); return; }
-  try {
-    const buffer = await excelWorkbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const base = (excelFileName || 'table').replace(/\.xlsx?$/i, '');
-    a.download = `${base}_заполнено.xlsx`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('Файл сохранён', 'ok');
-  } catch (e) { showToast('Ошибка сохранения: ' + e.message, 'err', 4000); }
+async function copyExcelBlock() {
+  if (!excelBlockTsv) { showToast('Сначала нажми «Построить блок для вставки»', 'warn'); return; }
+  await copyText(excelBlockTsv);
+  $excelCopyBlock.classList.add('copied');
+  const oldText = $excelCopyBlockText.textContent;
+  $excelCopyBlockText.textContent = 'Скопировано — вставляй в таблицу';
+  showToast('Блок в буфере. Выдели первую ячейку блока в таблице и нажми Ctrl+V', 'ok', 4500);
+  setTimeout(() => {
+    $excelCopyBlock.classList.remove('copied');
+    $excelCopyBlockText.textContent = oldText || 'Скопировать блок';
+  }, 2000);
 }
 
 function resetExcel() {
-  excelWorkbook = null; excelSheet = null; excelStructure = null; excelFileName = ''; excelFilledCount = 0;
+  excelWorkbook = null; excelSheet = null; excelStructure = null;
+  excelFileName = ''; excelBlockTsv = '';
   $excelFileName.textContent = '';
   $excelInfo.style.display = 'none';
   $excelPreviewBox.style.display = 'none';
   $excelActions.style.display = 'none';
   $excelError.style.display = 'none';
   $excelClear.disabled = true;
-  $excelDownload.disabled = true;
-  $excelFillText.textContent = 'Заполнить временами';
+  $excelCopyBlock.disabled = true;
+  $excelBlockOut.value = '';
+  $excelBlockBadge.style.display = 'none';
+  $excelFillText.textContent = 'Построить блок для вставки';
   excelBadgeSet(null);
   $excelHint.className = 'backup-hint';
-  $excelHint.querySelector('span').textContent = 'Загрузи Excel-шаблон с никами и датами. После загрузки текстового отчёта в превью покажется, что будет вставлено (фиолетовые ячейки). Нажми «Заполнить временами» → «Скачать».';
+  $excelHint.querySelector('span').textContent = 'Загрузи Excel-шаблон с никами и датами. После загрузки текстового отчёта нажми «Построить блок для вставки» — получишь блок только для ников с данными.';
   $excelGrid.innerHTML = '';
 }
 
@@ -1872,7 +2698,7 @@ $excelFile.addEventListener('change', async (e) => {
 });
 $excelClear.addEventListener('click', resetExcel);
 $excelFill.addEventListener('click', applyTimesToExcel);
-$excelDownload.addEventListener('click', downloadExcel);
+$excelCopyBlock.addEventListener('click', copyExcelBlock);
 
 ['dragenter', 'dragover'].forEach(ev => {
   $excelCard.addEventListener(ev, e => {
@@ -1903,6 +2729,7 @@ $excelCard.addEventListener('drop', async e => {
 (function init() {
   migratePresetsOnce();
   renderPresetSelect();
+  applySettings();
 
   let savedOrientation = 'h';
   try { savedOrientation = localStorage.getItem(ORIENT_KEY) || 'h'; } catch (e) {}
